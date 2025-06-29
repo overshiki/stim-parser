@@ -190,12 +190,6 @@ parseNoise = do
     -- parser for case: HERALDED_PAULI_CHANNEL_1(0.01, 0.02, 0.03, 0.04) 0 1
     pm1 = do 
       ty <- parseNoiseTy
-      -- lstring "("
-      -- let 
-      --   parseE = parseFloat << (lstring ",")
-      --   parseTuple = (++) <$> parseExhaust parseE <*> ([] <$> parseFloat)
-      -- phs <- parseTuple
-      -- lstring ")"
       phs <- parseTupleFloat
       qs <- parseExhaust parseQ 
       return $ NoiseNormal ty Nothing phs qs 
