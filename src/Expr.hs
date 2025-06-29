@@ -16,11 +16,16 @@ data Q = Q Int | QRec Rec | QSweep Sweep | Not Int
   deriving (Show)
 
 data Pauli = PX | PY | PZ 
-data PauliInd = PauliS Pauli Ind
+  deriving (Show)
+data PauliInd = PauliInd Pauli Ind
+  deriving (Show)
 
 data PauliChain = P [PauliInd]
   | N [PauliInd]
+  deriving (Show)
 
+-- the order is tricky for parser. TODO: more robust imp
+-- the first one is actually the last, in the parser order
 data GateTy =
   -- Pauli
   I | X | Y | Z 
@@ -29,7 +34,8 @@ data GateTy =
   -- Two Qubit Clifford Gates 
   | CNOT | CX | CXSWAP | CY | CZ | CZSWAP | II | ISWAP | ISWAP_DAG | SQRT_XX | SQRT_XX_DAG | SQRT_YY | SQRT_YY_DAG | SQRT_ZZ | SQRT_ZZ_DAG | SWAP | SWAPCX | SWAPCZ | XCX | XCY | XCZ | YCX | YCY | YCZ | ZCX | ZCY | ZCZ
   -- Collapsing Gates 
-  | R | RX | RY | RZ
+  | RX | RY | RZ
+  | R 
   deriving (Show, Eq, Ord, Bounded, Enum)
 
 -- property of dataclass Enum from GHC.Enum
@@ -43,11 +49,15 @@ gateTyList = [I ..]
 data Gate = Gate GateTy [Q] 
   deriving (Show)
 
+-- Collapsing Gates and Pair Measurement Gates 
+-- the order is tricky for parser. TODO: more robust imp
+-- the first one is actually the last, in the parser order
 data MeasureTy = 
-  -- Collapsing Gates 
-  M | MR | MRX | MRY | MRZ | MX | MY | MZ 
-  -- Pair Measurement Gates 
-  | MXX | MYY | MZZ
+  M 
+  | MXX | MYY | MZZ -- Pair Measurement Gates 
+  | MRX | MRY | MRZ 
+  | MX | MY | MZ 
+  | MR 
   deriving (Show, Eq, Ord, Bounded, Enum)
 
 measureTyList :: [MeasureTy]
@@ -64,11 +74,15 @@ measureTyList = [M ..]
 --    MXX(0.01) 2 3
 
 data Measure = Measure MeasureTy (Maybe Ph) [Q]
-
+  deriving (Show)
 
 -- Generalized Pauli Product Gates 
+-- the order is tricky for parser. TODO: more robust imp
+-- the first one is actually the last, in the parser order
 data GppTy = 
-  MPP | SPP | SPP_DAG
+  MPP 
+  | SPP_DAG
+  | SPP 
   deriving (Show, Eq, Ord, Bounded, Enum)
 
 gppTyList :: [GppTy]
@@ -82,14 +96,19 @@ gppTyList = [MPP ..]
 --    SPP !X1*Y2*Z3
 
 data Gpp = Gpp GppTy (Maybe Ph) [PauliChain]
+  deriving (Show)
 
 -- Noise Channels 
+-- the order is tricky for parser. TODO: more robust imp
+-- the first one is actually the last, in the parser order
 data NoiseTy = 
-  CORRELATED_ERROR | DEPOLARIZE1 | DEPOLARIZE2 | E | ELSE_CORRELATED_ERROR | HERALDED_ERASE | HERALDED_PAULI_CHANNEL_1 | II_ERROR | I_ERROR | PAULI_CHANNEL_1 | PAULI_CHANNEL_2 | X_ERROR | Y_ERROR | Z_ERROR
+  E 
+  | CORRELATED_ERROR | DEPOLARIZE1 | DEPOLARIZE2 
+  | ELSE_CORRELATED_ERROR | HERALDED_ERASE | HERALDED_PAULI_CHANNEL_1 | II_ERROR | I_ERROR | PAULI_CHANNEL_1 | PAULI_CHANNEL_2 | X_ERROR | Y_ERROR | Z_ERROR
   deriving (Show, Eq, Ord, Bounded, Enum)
 
 noiseTyList :: [NoiseTy]
-noiseTyList = [CORRELATED_ERROR ..] 
+noiseTyList = [E ..] 
 
 -- Noise Channels examples:
 -- normal type:
@@ -102,29 +121,36 @@ noiseTyList = [CORRELATED_ERROR ..]
 --    X_ERROR(0.001) 5 42
 --    Z_ERROR(0.001) 5 42
 --    Y_ERROR(0.001) 5 42
+--    II_ERROR(0.1) 0 1
+--    I_ERROR(0.1) 0
 --  E type:
 --    CORRELATED_ERROR(0.2) X1 Y2
 --    ELSE_CORRELATED_ERROR(0.25) Z2 Z3
 -- xx_ERROR type
 --    II_ERROR 0 1
---    II_ERROR(0.1) 0 1
 --    II_ERROR[TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR:0.1] 0 2 4 6
 --    II_ERROR[MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS](0.1, 0.2) 0 2 4 6
 --    I_ERROR 0
---    I_ERROR(0.1) 0
 --    I_ERROR[LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR:0.1] 0 2 4
 --    I_ERROR[MULTIPLE_NOISE_MECHANISMS](0.1, 0.2) 0 2 4
 
-data ErrorTag = TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR
+data ErrorTagTy = TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR
   | LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR
   | MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS
   | MULTIPLE_NOISE_MECHANISMS
-  | ErrorTagCoef ErrorTag Float 
+  deriving (Show, Eq, Ord, Bounded, Enum)
+
+errorTagTyList :: [ErrorTagTy]
+errorTagTyList = [TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR ..] 
+
+data ErrorTag = ErrorTag ErrorTagTy
+  | ErrorTagCoef ErrorTagTy Float 
+  deriving (Show)
 
 data Noise = 
-  NoiseNormal NoiseTy [Ph] [Int]
+  NoiseNormal NoiseTy (Maybe ErrorTag) [Ph] [Q]
   | NoiseE NoiseTy Float [PauliInd]
-  | NoiseError NoiseTy (Maybe ErrorTag) [Ph] [Int]
+  deriving (Show)
 
 -- Annotations 
 data AnnTy = 

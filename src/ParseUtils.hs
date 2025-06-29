@@ -51,6 +51,8 @@ run p s = case m of
 parseInt :: Parser Int
 parseInt = lexeme $ L.signed sc L.decimal
 
+parseFloat :: Parser Float 
+parseFloat = lexeme $ L.signed sc L.float
 
 parseVar :: Parser String
 parseVar = do
