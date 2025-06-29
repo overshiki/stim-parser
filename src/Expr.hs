@@ -3,7 +3,9 @@ module Expr where
 type Ind = Int
 type Ph = Float
 newtype Rec = Rec Int
-newtype Sweep = Sweep Int 
+  deriving (Show)
+newtype Sweep = Sweep Int
+  deriving (Show)
 
 -- example:
 --    CY sweep[5] 7 sweep[5] 8
@@ -11,6 +13,7 @@ newtype Sweep = Sweep Int
 --    CY 2 5 4 2
 --    MXX !1 2
 data Q = Q Int | QRec Rec | QSweep Sweep | Not Int
+  deriving (Show)
 
 data Pauli = PX | PY | PZ 
 data PauliInd = PauliS Pauli Ind
@@ -27,14 +30,28 @@ data GateTy =
   | CNOT | CX | CXSWAP | CY | CZ | CZSWAP | II | ISWAP | ISWAP_DAG | SQRT_XX | SQRT_XX_DAG | SQRT_YY | SQRT_YY_DAG | SQRT_ZZ | SQRT_ZZ_DAG | SWAP | SWAPCX | SWAPCZ | XCX | XCY | XCZ | YCX | YCY | YCZ | ZCX | ZCY | ZCZ
   -- Collapsing Gates 
   | R | RX | RY | RZ
+  deriving (Show, Eq, Ord, Bounded, Enum)
 
+-- property of dataclass Enum from GHC.Enum
+gateTyList :: [GateTy]
+gateTyList = [I ..] 
+
+-- Gate examples:
+--    CY sweep[5] 7 sweep[5] 8
+--    CY rec[-1] 6
+--    CY 2 5 4 2
 data Gate = Gate GateTy [Q] 
+  deriving (Show)
 
 data MeasureTy = 
   -- Collapsing Gates 
   M | MR | MRX | MRY | MRZ | MX | MY | MZ 
   -- Pair Measurement Gates 
   | MXX | MYY | MZZ
+  deriving (Show, Eq, Ord, Bounded, Enum)
+
+measureTyList :: [MeasureTy]
+measureTyList = [M ..] 
 
 -- Collapsing Gates examples:
 --    M 5
@@ -52,7 +69,11 @@ data Measure = Measure MeasureTy (Maybe Ph) [Q]
 -- Generalized Pauli Product Gates 
 data GppTy = 
   MPP | SPP | SPP_DAG
-  
+  deriving (Show, Eq, Ord, Bounded, Enum)
+
+gppTyList :: [GppTy]
+gppTyList = [MPP ..] 
+
 -- Generalized Pauli Product Gates  examples:
 --    MPP X2*X3*X5*X7
 --    MPP !Z5
@@ -65,6 +86,10 @@ data Gpp = Gpp GppTy (Maybe Ph) [PauliChain]
 -- Noise Channels 
 data NoiseTy = 
   CORRELATED_ERROR | DEPOLARIZE1 | DEPOLARIZE2 | E | ELSE_CORRELATED_ERROR | HERALDED_ERASE | HERALDED_PAULI_CHANNEL_1 | II_ERROR | I_ERROR | PAULI_CHANNEL_1 | PAULI_CHANNEL_2 | X_ERROR | Y_ERROR | Z_ERROR
+  deriving (Show, Eq, Ord, Bounded, Enum)
+
+noiseTyList :: [NoiseTy]
+noiseTyList = [CORRELATED_ERROR ..] 
 
 -- Noise Channels examples:
 -- normal type:
@@ -104,6 +129,10 @@ data Noise =
 -- Annotations 
 data AnnTy = 
   DETECTOR | MPAD | OBSERVABLE_INCLUDE | QUBIT_COORDS | SHIFT_COORDS | TICK
+  deriving (Show, Eq, Ord, Bounded, Enum)
+
+annTyList :: [AnnTy]
+annTyList = [DETECTOR ..] 
 
 -- Annotations examples:
 --    DETECTOR(1, 0) rec[-3] rec[-6]
@@ -116,7 +145,8 @@ data AnnTy =
 --    SHIFT_COORDS(0, 1)  # Advance 2nd coordinate to track loop iterations.
 --    TICK
 
-data FInd = I Ind | F Float
+-- seperate Integer and Float cases
+data FInd = In Ind | Fl Float
 data Ann = Ann [FInd] [Q] | Tick
 
 
@@ -127,4 +157,4 @@ data Stim =
   | StimNoise Noise
   | StimAnn Ann
   | StimList [Stim]
-  | StimRepeat Int Circuit
+  | StimRepeat Int Stim

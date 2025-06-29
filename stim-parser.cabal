@@ -50,6 +50,23 @@ extra-doc-files:    CHANGELOG.md
 common warnings
     ghc-options: -Wall
 
+library
+    import:           warnings
+    hs-source-dirs:   src
+    build-depends:    
+        base
+      , unordered-containers
+      , containers
+      , megaparsec
+      , mtl
+    -- other-modules:
+    --    ParseUtils
+    exposed-modules:     
+        Expr
+      , Parse
+      , ParseUtils
+    
+
 executable stim-parser
     -- Import common warning flags.
     import:           warnings
@@ -64,7 +81,9 @@ executable stim-parser
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.16.4.0
+    build-depends:    
+        base
+      , stim-parser
 
     -- Directories containing source files.
     hs-source-dirs:   app
