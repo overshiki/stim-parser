@@ -173,8 +173,15 @@ annTyList = [DETECTOR ..]
 
 -- seperate Integer and Float cases
 data FInd = In Ind | Fl Float
-data Ann = Ann [FInd] [Q] | Tick
+  deriving (Show)
+data Ann = Ann AnnTy [FInd] [Q]
+  deriving (Show)
 
+-- repeat example:
+-- REPEAT 0 {
+--     M 0
+--     OBSERVABLE_INCLUDE(0) rec[-1]
+-- }
 
 data Stim = 
   StimG Gate 
@@ -184,3 +191,4 @@ data Stim =
   | StimAnn Ann
   | StimList [Stim]
   | StimRepeat Int Stim
+  deriving (Show)

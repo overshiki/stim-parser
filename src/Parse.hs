@@ -10,6 +10,9 @@ import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
+-- TODO: why all the parsing orders are tricky? because when some parser fail in the half way, it will not return to its original state
+-- should consider improving this
+
 -- parsePauli is not lexemed
 parsePauli :: Parser Pauli
 parsePauli = 
@@ -170,18 +173,31 @@ parseErrorTag = do
   -- the order is tricky
   try pm2 <|> pm1
 
-parseTupleFloat :: Parser [Float]
-parseTupleFloat = do 
+parseTuple :: Parser a -> Parser [a]
+parseTuple pm = do 
   lstring "("
   let 
     parseE = do 
-      f <- parseFloat
+      f <- pm
       lstring ","
       return f
-    parseTuple = (++) <$> parseExhaust parseE <*> ((: []) <$> parseFloat)
-  phs <- parseTuple
+    parseTuple_ = (++) <$> parseExhaust parseE <*> ((: []) <$> pm)
+  phs <- parseTuple_
   lstring ")"
   return phs
+
+parseTupleFloat :: Parser [Float]
+parseTupleFloat = parseTuple parseFloat
+  -- lstring "("
+  -- let 
+  --   parseE = do 
+  --     f <- parseFloat
+  --     lstring ","
+  --     return f
+  --   parseTuple = (++) <$> parseExhaust parseE <*> ((: []) <$> parseFloat)
+  -- phs <- parseTuple
+  -- lstring ")"
+  -- return phs
 
 
 parseNoise :: Parser Noise
@@ -225,3 +241,78 @@ parseNoise = do
       return $ NoiseNormal ty (Just et) phs qs
   -- the order is tricky 
   try pm2 <|> try pm5 <|> try pm4 <|> try pm1 <|> pm3
+
+parseAnnTy :: Parser AnnTy
+parseAnnTy = parseEnum annTyList
+
+parseFInd :: Parser FInd
+parseFInd = do 
+  let 
+    -- In Ind
+    pm1 = do 
+      i <- parseInt
+      return $ In i 
+    -- Fl Float
+    pm2 = do
+      f <- parseFloat
+      return $ Fl f 
+  -- the order is tricky 
+  try pm2 <|> pm1
+
+parseAnn :: Parser Ann 
+parseAnn = do 
+  let 
+    -- parser for case: DETECTOR(1, 0) rec[-3] rec[-6]
+    pm1 = do 
+      ty <- parseAnnTy 
+      fds <- parseTuple parseFInd
+      qs <- parseExhaust parseQ
+      return $ Ann ty fds qs
+    -- parser for case: DETECTOR rec[-3] rec[-4] rec[-7]
+    pm2 = do 
+      ty <- parseAnnTy
+      qs <- parseExhaust parseQ
+      return $ Ann ty [] qs
+    -- parser for case: SHIFT_COORDS(500.5)
+    pm3 = do 
+      ty <- parseAnnTy
+      fds <- parseTuple parseFInd
+      return $ Ann ty fds []
+    -- parser for case: TICK
+    pm4 = do
+      -- note that this case only works for TICK 
+      ty <- parseShow TICK
+      return $ Ann ty [] []
+  -- the order is tricky
+  try pm1 <|> try pm2 <|> try pm3 <|> pm4 
+
+parseStart :: Parser ()
+parseStart = void (lstring "!!!Start") 
+
+parseStim :: Parser Stim 
+parseStim = do 
+  let 
+    -- the order may be tricky
+    parseUnit = 
+      try (StimG <$> parseGate)
+      <|> try (StimM <$> parseMeasure)
+      <|> try (StimGpp <$> parseGpp)
+      <|> try (StimNoise <$> parseNoise)
+      <|> (StimAnn <$> parseAnn)
+
+    parseUnitList = StimList <$> parseExhaust parseUnit
+    parseRepeat = do 
+      lstring "REPEAT"
+      i <- parseInt
+      lstring "{"
+      us <- parseUnitList
+      lstring "}"
+      return $ StimRepeat i us
+
+    parseUR = try parseRepeat <|> parseUnit
+
+  parseStart
+  
+  StimList <$> safeManyTill parseUR eof
+
+

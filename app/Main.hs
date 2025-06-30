@@ -2,6 +2,7 @@ module Main where
 import Expr
 import Parse
 import ParseUtils
+import System.IO
 
 main :: IO ()
 main = do 
@@ -23,4 +24,12 @@ main = do
   print $ run parseNoise "II_ERROR 0 1 \n CY"
   print $ run parseNoise "II_ERROR[TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR:0.1] 0 2 4 6 \n CY"
   print $ run parseNoise "II_ERROR[MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS](0.1, 0.2) 0 2 4 6 \n CY"
+  print $ run parseAnn "DETECTOR(1, 0) rec[-3] rec[-6] \n CY"
+  print $ run parseAnn "DETECTOR rec[-3] rec[-4] rec[-7] \n CY"
+  print $ run parseAnn "SHIFT_COORDS(500.5) \n CY"
+  print $ run parseAnn "TICK \n CY"
+
+  let file = "data/example.stim"
+  s <- readFile file
+  print $ run parseStim ("!!!Start " ++ s) 
 

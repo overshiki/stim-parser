@@ -22,7 +22,7 @@ type Parser = Parsec Void String
 sc :: Parser ()
 sc = L.space
   space1
-  (L.skipLineComment "\\")
+  (L.skipLineComment "#")
   (L.skipBlockComment "(*" "*)")
 
 -- cosume all the white spaces following a Parser
