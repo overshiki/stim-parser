@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use <$>" #-}
 {-# HLINT ignore "Use <&>" #-}
-module ParseUtils where
+module StimParser.ParseUtils where
 import Data.Void
 import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char

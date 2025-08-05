@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use <$>" #-}
-module Parse where
-import Expr
-import ParseUtils
+module StimParser.Parse where
+import StimParser.Expr
+import StimParser.ParseUtils
 import Control.Monad
 import Data.List
 import Text.Megaparsec hiding (State)

@@ -62,9 +62,9 @@ library
     -- other-modules:
     --    ParseUtils
     exposed-modules:     
-        Expr
-      , Parse
-      , ParseUtils
+        StimParser.Expr
+      , StimParser.Parse
+      , StimParser.ParseUtils
     
 
 executable stim-parser

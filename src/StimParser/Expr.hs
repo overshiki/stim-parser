@@ -1,4 +1,4 @@
-module Expr where 
+module StimParser.Expr where 
 
 type Ind = Int
 type Ph = Float

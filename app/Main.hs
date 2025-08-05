@@ -1,7 +1,7 @@
 module Main where
-import Expr
-import Parse
-import ParseUtils
+import StimParser.Expr
+import StimParser.Parse
+import StimParser.ParseUtils
 import System.IO
 
 main :: IO ()
