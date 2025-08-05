@@ -65,6 +65,7 @@ library
         StimParser.Expr
       , StimParser.Parse
       , StimParser.ParseUtils
+      , StimParser.Trans
     
 
 executable stim-parser
