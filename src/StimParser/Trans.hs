@@ -8,11 +8,11 @@ type Env = State Int
 
 -- questions raised:
   -- is that `Measure` the only case where we increase the count? 
-    -- currently, the only case
+    -- no, each Gpp also increases the count
   -- if `Measure` contains multiple qubits, do we increase the count by one for each qubit?
-    -- currently, increase for each qubit
+    -- yes
   -- how could we deal with the rec inside the Repeat block?
-    -- currently, expand it into List
+    -- just, expand it into List
 
 -- transform all (QRec Rec) into (Q Int)
 class FlattenQ a where 
@@ -40,7 +40,11 @@ instance FlattenQ Measure where
     return m
 
 instance FlattenQ Gpp where 
-  flattenQ g = return g
+  flattenQ g = do 
+    count <- get 
+    let ncount = count + 1
+    put ncount 
+    return g
 
 instance FlattenQ Noise where 
   flattenQ (NoiseNormal nty tag phs qs) = do 
