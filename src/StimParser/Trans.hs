@@ -14,6 +14,8 @@ type Env = State Int
   -- how could we deal with the rec inside the Repeat block?
     -- just, expand it into List
 
+-- TODO: SHIFT_COORDS will affect the coordinate in stim annotation
+
 -- transform all (QRec Rec) into (Q Int)
 class FlattenQ a where 
   flattenQ :: a -> Env a 
