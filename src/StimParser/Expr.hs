@@ -1,3 +1,4 @@
+{-# LANGUAGE InstanceSigs #-}
 module StimParser.Expr where 
 
 type Ind = Int
@@ -174,6 +175,23 @@ annTyList = [DETECTOR ..]
 -- seperate Integer and Float cases
 data FInd = In Ind | Fl Float
   deriving (Show)
+
+instance Num FInd where
+  (+) (In i1) (In i2) = In (i1 + i2)
+  (+) (Fl i1) (Fl i2) = Fl (i1 + i2)
+  (+) (In i1) (Fl i2) = Fl (fromIntegral i1 + i2)
+  (+) (Fl i1) (In i2) = Fl (i1 + fromIntegral i2)
+
+  (*) = undefined
+  negate = undefined
+  abs = undefined
+  signum = undefined
+  
+  fromInteger :: Integer -> FInd
+  fromInteger = In . fromInteger 
+
+newtype Coords = Coords [FInd]
+
 data Ann = Ann AnnTy [FInd] [Q]
   deriving (Show)
 
