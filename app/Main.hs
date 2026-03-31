@@ -1,35 +1,17 @@
-module Main where
-import StimParser.Expr
 import StimParser.Parse
-import StimParser.ParseUtils
-import System.IO
+import StimParser.ParseUtils (run)
 
+-- Parse a stim gate
 main :: IO ()
-main = do 
-  print gateTyList
-  print $ run parseGateTy "I"
-  print $ run parseGateTy "X"
-  print $ run parseGateTy "C_NXYZ"
-  print $ run parseGate "CY sweep[5] 7 sweep[5] 8 \n CY"
-  print $ run parseMeasureTy "MXX"
-  print $ run parseMeasure "MXX(0.01) 2 3 \n CY"
-  print $ run parsePauliChain "X1*Z1*Y2 X1*Z1*Y2"
-  print $ run parsePauliChain "!X1*Z1*Y2 !X1*Z1*Y2"
-  print $ run parsePauliChain "X1*Z1 !X1*Z1*Y2"
-  print $ run (parseExhaust parsePauliChain) "X1*Z1 !X1*Z1*Y2 \n CY"
-  print $ run parseGpp "MPP(0.001) Z1*Z2 X1*X2 \n CY"
-  print $ run parseGpp "MPP Z1*Z2 X1*X2 \n CY"
-  print $ run parseNoise "HERALDED_PAULI_CHANNEL_1(0.01, 0.02, 0.03, 0.04) 0 1 \n CY"
-  print $ run parseNoise "CORRELATED_ERROR(0.2) X1 Y2 \n CY"
-  print $ run parseNoise "II_ERROR 0 1 \n CY"
-  print $ run parseNoise "II_ERROR[TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR:0.1] 0 2 4 6 \n CY"
-  print $ run parseNoise "II_ERROR[MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS](0.1, 0.2) 0 2 4 6 \n CY"
-  print $ run parseAnn "DETECTOR(1, 0) rec[-3] rec[-6] \n CY"
-  print $ run parseAnn "DETECTOR rec[-3] rec[-4] rec[-7] \n CY"
-  print $ run parseAnn "SHIFT_COORDS(500.5) \n CY"
-  print $ run parseAnn "TICK \n CY"
-
-  let file = "data/example.stim"
-  s <- readFile file
-  print $ run parseStim ("!!!Start " ++ s) 
-
+main = do
+  -- Parse individual elements
+  print $ run parseGate "CNOT 0 1 2 3"
+  -- => Gate CNOT [Q 0,Q 1,Q 2,Q 3]
+  
+  print $ run parseMeasure "MXX(0.01) 2 3"
+  -- => Measure MXX (Just 0.01) [Q 2,Q 3]
+  
+  -- Parse a full stim file
+  s <- readFile "data/example.stim"
+  print $ run parseStim ("!!!Start " ++ s)
+  -- => StimList [...]
