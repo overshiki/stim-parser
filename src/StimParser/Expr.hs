@@ -25,8 +25,6 @@ data PauliChain = P [PauliInd]
   | N [PauliInd]
   deriving (Show)
 
--- the order is tricky for parser. TODO: more robust imp
--- the first one is actually the last, in the parser order
 data GateTy =
   -- Pauli
   I | X | Y | Z 
@@ -51,8 +49,6 @@ data Gate = Gate GateTy [Q]
   deriving (Show)
 
 -- Collapsing Gates and Pair Measurement Gates 
--- the order is tricky for parser. TODO: more robust imp
--- the first one is actually the last, in the parser order
 data MeasureTy = 
   M 
   | MXX | MYY | MZZ -- Pair Measurement Gates 
@@ -78,8 +74,6 @@ data Measure = Measure MeasureTy (Maybe Ph) [Q]
   deriving (Show)
 
 -- Generalized Pauli Product Gates 
--- the order is tricky for parser. TODO: more robust imp
--- the first one is actually the last, in the parser order
 data GppTy = 
   MPP 
   | SPP_DAG
@@ -100,8 +94,6 @@ data Gpp = Gpp GppTy (Maybe Ph) [PauliChain]
   deriving (Show)
 
 -- Noise Channels 
--- the order is tricky for parser. TODO: more robust imp
--- the first one is actually the last, in the parser order
 data NoiseTy = 
   E 
   | CORRELATED_ERROR | DEPOLARIZE1 | DEPOLARIZE2 

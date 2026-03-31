@@ -72,6 +72,8 @@ instance FlattenQ Ann where
     put (count, Coords ncs)
     return Nothing
 
+  -- TODO: type-level constraint that fs and cs should be of the same length
+  -- TODO: type-level constraint that count should not be used in this case
   flattenQ (Ann DETECTOR fs qs) = do
     (count, Coords cs) <- get
     let nfs = zipWith (+) fs cs

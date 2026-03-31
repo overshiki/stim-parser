@@ -77,12 +77,16 @@ parseQ = do
 parseShow :: (Show a) => a -> Parser a
 parseShow x = lstring (show x) >> return x
 
+-- parseEnum :: (Show a) => [a] -> Parser a
+-- parseEnum (x:xs) = do
+--   let
+--     parseTail = msum $ try . parseShow <$> xs
+--   parseTail <|> parseShow x
+-- parseEnum [] = error "value error"
+
 parseEnum :: (Show a) => [a] -> Parser a
-parseEnum (x:xs) = do
-  let
-    parseTail = msum $ try . parseShow <$> xs
-  parseTail <|> parseShow x
 parseEnum [] = error "value error"
+parseEnum xs = msum $ map parseShow $ sortOn (negate . length . show) xs
 
 parseGateTy :: Parser GateTy
 parseGateTy = parseEnum gateTyList

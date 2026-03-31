@@ -91,3 +91,19 @@ executable stim-parser
 
     -- Base language which the package is written in.
     default-language: Haskell2010
+
+test-suite stim-parser-test
+    import:           warnings
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    other-modules:    Test.Expr
+                    , Test.ParseUtils
+                    , Test.Parse
+                    , Test.Trans
+    build-depends:    base
+                    , stim-parser
+                    , HUnit
+                    , mtl
+                    , megaparsec
