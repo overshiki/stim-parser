@@ -33,15 +33,15 @@ instance FlattenQ Q where
 
 instance FlattenQ Gate where
   type Out Gate = Gate
-  flattenQ (Gate gt qs) = do 
+  flattenQ (Gate gt tag qs) = do 
     nqs <- mapM flattenQ qs 
-    return $ Gate gt nqs 
+    return $ Gate gt tag nqs 
 
 -- for each measure, we increase the count by 1
 -- currently, we assume measure does not contains (QRec Rec)
 instance FlattenQ Measure where
   type Out Measure = Measure
-  flattenQ m@(Measure mty mph qs) = do 
+  flattenQ m@(Measure mty tag mph qs) = do 
     (count, cs) <- get 
     let ncount = count + length qs 
     put (ncount, cs) 
@@ -57,15 +57,15 @@ instance FlattenQ Gpp where
 
 instance FlattenQ Noise where
   type Out Noise = Noise
-  flattenQ (NoiseNormal nty tag phs qs) = do 
+  flattenQ (NoiseNormal nty tag errTag phs qs) = do 
     nqs <- mapM flattenQ qs 
-    return $ NoiseNormal nty tag phs nqs
+    return $ NoiseNormal nty tag errTag phs nqs
 
   flattenQ n@(NoiseE {}) = return n
 
 instance FlattenQ Ann where
   type Out Ann = Maybe Ann
-  flattenQ (Ann SHIFT_COORDS fs qs) = do
+  flattenQ (Ann SHIFT_COORDS tag fs qs) = do
     -- nqs <- mapM flattenQ qs
     (count, Coords cs) <- get
     let ncs = zipWith (+) fs cs
@@ -74,15 +74,15 @@ instance FlattenQ Ann where
 
   -- TODO: type-level constraint that fs and cs should be of the same length
   -- TODO: type-level constraint that count should not be used in this case
-  flattenQ (Ann DETECTOR fs qs) = do
+  flattenQ (Ann DETECTOR tag fs qs) = do
     (count, Coords cs) <- get
     let nfs = zipWith (+) fs cs
     nqs <- mapM flattenQ qs
-    return $ Just $ Ann DETECTOR nfs nqs
+    return $ Just $ Ann DETECTOR tag nfs nqs
     
-  flattenQ (Ann aty fs qs) = do 
+  flattenQ (Ann aty tag fs qs) = do 
     nqs <- mapM flattenQ qs 
-    return $ Just $ Ann aty fs nqs
+    return $ Just $ Ann aty tag fs nqs
 
 instance FlattenQ Stim where
   type Out Stim = Maybe Stim

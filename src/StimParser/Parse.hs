@@ -91,6 +91,15 @@ parseEnum :: (Show a) => [a] -> Parser a
 parseEnum [] = error "value error"
 parseEnum xs = msum $ map parseShowCI $ sortOn (negate . length . show) xs
 
+-- | Parse an optional tag: [tag_content]
+-- Tag content can be any character except ], \r, \n
+parseTag :: Parser Tag
+parseTag = do
+  lstring "["
+  content <- many $ satisfy (\c -> c /= ']' && c /= '\r' && c /= '\n')
+  lstring "]"
+  return $ Tag content
+
 parseGateTy :: Parser GateTy
 parseGateTy = parseEnum gateTyList
 
@@ -104,9 +113,9 @@ parseGateTy = parseEnum gateTyList
 parseGate :: Parser Gate
 parseGate = do
   gty <- parseGateTy
-  -- qs <- safeManyTill parseQ preparseNext
+  tag <- optional parseTag
   qs <- parseExhaust parseQ
-  return $ Gate gty qs
+  return $ Gate gty tag qs
 
 parseMeasureTy :: Parser MeasureTy
 parseMeasureTy = parseEnum measureTyList
@@ -121,21 +130,21 @@ parsePh = do
 parseMeasure :: Parser Measure
 parseMeasure = do 
   let 
-    -- parser for case: MXX !1 2
+    -- parser for case: M[tag](0.02) 2 3 5
     pm1 = do 
       mty <- parseMeasureTy
-      -- qs <- safeManyTill parseQ preparseNext
+      tag <- optional parseTag
+      ph <- parsePh
       qs <- parseExhaust parseQ
-      return $ Measure mty Nothing qs
-    -- parser for case: MZ(0.02) 2 3 5
+      return $ Measure mty tag (Just ph) qs
+    -- parser for case: M[tag] 0
     pm2 = do 
       mty <- parseMeasureTy
-      ph <- parsePh
-      -- qs <- safeManyTill parseQ preparseNext
+      tag <- optional parseTag
       qs <- parseExhaust parseQ
-      return $ Measure mty (Just ph) qs
-  -- the order is tricky
-  try pm2 <|> pm1
+      return $ Measure mty tag Nothing qs
+  -- the order is tricky - try phase version first
+  try pm1 <|> pm2
 
 
 parseGppTy :: Parser GppTy
@@ -144,21 +153,21 @@ parseGppTy = parseEnum gppTyList
 parseGpp :: Parser Gpp 
 parseGpp = do 
   let 
-    -- parser for case: MPP X1*Y2 !Z3*Z4*Z5
+    -- parser for case: MPP[tag](0.001) Z1*Z2 X1*X2
     pm1 = do 
       gty <- parseGppTy
-      -- pcs <- safeManyTill parsePauliChain preparseNext
+      tag <- optional parseTag
+      ph <- parsePh
       pcs <- parseExhaust parsePauliChain
-      return $ Gpp gty Nothing pcs
-    -- parser for case: MPP(0.001) Z1*Z2 X1*X2
+      return $ Gpp gty tag (Just ph) pcs
+    -- parser for case: MPP[tag] X1*Y2 !Z3*Z4*Z5
     pm2 = do 
       gty <- parseGppTy
-      ph <- parsePh
-      -- pcs <- safeManyTill parsePauliChain preparseNext
+      tag <- optional parseTag
       pcs <- parseExhaust parsePauliChain
-      return $ Gpp gty (Just ph) pcs
-  -- the order is tricky
-  try pm2 <|> pm1
+      return $ Gpp gty tag Nothing pcs
+  -- the order is tricky - try phase version first
+  try pm1 <|> pm2
 
 parseNoiseTy :: Parser NoiseTy
 parseNoiseTy = parseEnum noiseTyList
@@ -210,43 +219,48 @@ parseTupleFloat = parseTuple parseFloat
 parseNoise :: Parser Noise
 parseNoise = do 
   let 
-    -- parser for case: HERALDED_PAULI_CHANNEL_1(0.01, 0.02, 0.03, 0.04) 0 1
+    -- parser for case: X_ERROR[tag](0.01) 0 - with general tag and args
     pm1 = do 
       ty <- parseNoiseTy
+      tag <- optional parseTag
       phs <- parseTupleFloat
       qs <- parseExhaust parseQ 
-      return $ NoiseNormal ty Nothing phs qs 
-    -- parser for case: CORRELATED_ERROR(0.2) X1 Y2
+      return $ NoiseNormal ty tag Nothing phs qs 
+    -- parser for case: CORRELATED_ERROR[tag](0.2) X1 Y2
     pm2 = do 
       ty <- parseNoiseTy
+      tag <- optional parseTag
       lstring "("
       ph <- parseFloat
       lstring ")"
       ps <- some (lexeme parsePauliInd)
-      return $ NoiseE ty ph ps 
-    -- parser for case: II_ERROR 0 1
+      return $ NoiseE ty tag ph ps 
+    -- parser for case: X_ERROR[tag] 0 - with general tag, no args
     pm3 = do 
       ty <- parseNoiseTy
+      tag <- optional parseTag
       qs <- parseExhaust parseQ 
-      return $ NoiseNormal ty Nothing [] qs
-    -- parser for case: II_ERROR[TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR:0.1] 0 2 4 6
+      return $ NoiseNormal ty tag Nothing [] qs
+    -- parser for case: II_ERROR[ErrorTag:coef] 0 2 4 6 - error tag without args
     pm4 = do 
       ty <- parseNoiseTy
       lstring "["
       et <- parseErrorTag
       lstring "]"
+      tag <- optional parseTag  -- Optional general tag after error tag
       qs <- parseExhaust parseQ 
-      return $ NoiseNormal ty (Just et) [] qs
-    -- parser for case: II_ERROR[MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS](0.1, 0.2) 0 2 4 6
+      return $ NoiseNormal ty tag (Just et) [] qs
+    -- parser for case: II_ERROR[ErrorTag](0.1, 0.2) 0 2 4 6 - error tag with args
     pm5 = do 
       ty <- parseNoiseTy
       lstring "["
       et <- parseErrorTag
       lstring "]"
+      tag <- optional parseTag  -- Optional general tag after error tag
       phs <- parseTupleFloat
       qs <- parseExhaust parseQ 
-      return $ NoiseNormal ty (Just et) phs qs
-  -- the order is tricky 
+      return $ NoiseNormal ty tag (Just et) phs qs
+  -- the order is tricky - try most specific first
   try pm2 <|> try pm5 <|> try pm4 <|> try pm1 <|> pm3
 
 parseAnnTy :: Parser AnnTy
@@ -269,27 +283,30 @@ parseFInd = do
 parseAnn :: Parser Ann 
 parseAnn = do 
   let 
-    -- parser for case: DETECTOR(1, 0) rec[-3] rec[-6]
+    -- parser for case: DETECTOR[tag](1, 0) rec[-3] rec[-6]
     pm1 = do 
       ty <- parseAnnTy 
+      tag <- optional parseTag
       fds <- parseTuple parseFInd
       qs <- parseExhaust parseQ
-      return $ Ann ty fds qs
-    -- parser for case: DETECTOR rec[-3] rec[-4] rec[-7]
+      return $ Ann ty tag fds qs
+    -- parser for case: DETECTOR[tag] rec[-3] rec[-4] rec[-7]
     pm2 = do 
       ty <- parseAnnTy
+      tag <- optional parseTag
       qs <- parseExhaust parseQ
-      return $ Ann ty [] qs
-    -- parser for case: SHIFT_COORDS(500.5)
+      return $ Ann ty tag [] qs
+    -- parser for case: SHIFT_COORDS[tag](500.5)
     pm3 = do 
       ty <- parseAnnTy
+      tag <- optional parseTag
       fds <- parseTuple parseFInd
-      return $ Ann ty fds []
-    -- parser for case: TICK
+      return $ Ann ty tag fds []
+    -- parser for case: TICK[tag]
     pm4 = do
-      -- note that this case only works for TICK 
-      ty <- parseShow TICK
-      return $ Ann ty [] []
+      ty <- parseShowCI TICK
+      tag <- optional parseTag
+      return $ Ann ty tag [] []
   -- the order is tricky
   try pm1 <|> try pm2 <|> try pm3 <|> pm4 
 

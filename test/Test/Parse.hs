@@ -94,15 +94,15 @@ testParseGateTy = TestList
 testParseGate :: Test
 testParseGate = TestList
   [ assertShowEqual "parseGate single qubit" 
-      (Gate X [Q 0]) (run parseGate "X 0")
+      (Gate X Nothing [Q 0]) (run parseGate "X 0")
   , assertShowEqual "parseGate multiple qubits" 
-      (Gate H [Q 0, Q 1, Q 2]) (run parseGate "H 0 1 2")
+      (Gate H Nothing [Q 0, Q 1, Q 2]) (run parseGate "H 0 1 2")
   , assertShowEqual "parseGate with rec" 
-      (Gate CY [QRec (Rec (-1)), Q 6]) (run parseGate "CY rec[-1] 6")
+      (Gate CY Nothing [QRec (Rec (-1)), Q 6]) (run parseGate "CY rec[-1] 6")
   , assertShowEqual "parseGate with sweep" 
-      (Gate CY [QSweep (Sweep 5), Q 7, QSweep (Sweep 5), Q 8]) (run parseGate "CY sweep[5] 7 sweep[5] 8")
+      (Gate CY Nothing [QSweep (Sweep 5), Q 7, QSweep (Sweep 5), Q 8]) (run parseGate "CY sweep[5] 7 sweep[5] 8")
   , assertShowEqual "parseGate with not" 
-      (Gate X [Not 1, Q 2]) (run parseGate "X !1 2")
+      (Gate X Nothing [Not 1, Q 2]) (run parseGate "X !1 2")
   ]
 
 -- Test MeasureTy parsing
@@ -130,20 +130,20 @@ testParsePh = TestList
 testParseMeasure :: Test
 testParseMeasure = TestList
   [ assertShowEqual "parseMeasure simple" 
-      (Measure M Nothing [Q 5]) (run parseMeasure "M 5")
+      (Measure M Nothing Nothing [Q 5]) (run parseMeasure "M 5")
   , assertShowEqual "parseMeasure with phase" 
-      (Measure MZ (Just 0.02) [Q 2, Q 3, Q 5]) (run parseMeasure "MZ(0.02) 2 3 5")
+      (Measure MZ Nothing (Just 0.02) [Q 2, Q 3, Q 5]) (run parseMeasure "MZ(0.02) 2 3 5")
   , assertShowEqual "parseMeasure pair" 
-      (Measure MXX Nothing [Q 1, Q 2]) (run parseMeasure "MXX 1 2")
+      (Measure MXX Nothing Nothing [Q 1, Q 2]) (run parseMeasure "MXX 1 2")
   -- Case-insensitive tests
   , assertShowEqual "parseMeasure lowercase m" 
-      (Measure M Nothing [Q 5]) (run parseMeasure "m 5")
+      (Measure M Nothing Nothing [Q 5]) (run parseMeasure "m 5")
   , assertShowEqual "parseMeasure lowercase mz" 
-      (Measure MZ (Just 0.02) [Q 2]) (run parseMeasure "mz(0.02) 2")
+      (Measure MZ Nothing (Just 0.02) [Q 2]) (run parseMeasure "mz(0.02) 2")
   , assertShowEqual "parseMeasure pair with phase" 
-      (Measure MXX (Just 0.01) [Q 2, Q 3]) (run parseMeasure "MXX(0.01) 2 3")
+      (Measure MXX Nothing (Just 0.01) [Q 2, Q 3]) (run parseMeasure "MXX(0.01) 2 3")
   , assertShowEqual "parseMeasure with not" 
-      (Measure MZ Nothing [Not 5]) (run parseMeasure "MZ !5")
+      (Measure MZ Nothing Nothing [Not 5]) (run parseMeasure "MZ !5")
   ]
 
 -- Test GppTy parsing
@@ -158,16 +158,16 @@ testParseGppTy = TestList
 testParseGpp :: Test
 testParseGpp = TestList
   [ assertShowEqual "parseGpp simple" 
-      (Gpp MPP Nothing [P [PauliInd PX 2, PauliInd PX 3, PauliInd PX 5, PauliInd PX 7]]) 
+      (Gpp MPP Nothing Nothing [P [PauliInd PX 2, PauliInd PX 3, PauliInd PX 5, PauliInd PX 7]]) 
       (run parseGpp "MPP X2*X3*X5*X7")
   , assertShowEqual "parseGpp with negation" 
-      (Gpp MPP Nothing [N [PauliInd PZ 5]]) 
+      (Gpp MPP Nothing Nothing [N [PauliInd PZ 5]]) 
       (run parseGpp "MPP !Z5")
   , assertShowEqual "parseGpp with phase" 
-      (Gpp MPP (Just 0.001) [P [PauliInd PZ 1, PauliInd PZ 2], P [PauliInd PX 1, PauliInd PX 2]]) 
+      (Gpp MPP Nothing (Just 0.001) [P [PauliInd PZ 1, PauliInd PZ 2], P [PauliInd PX 1, PauliInd PX 2]]) 
       (run parseGpp "MPP(0.001) Z1*Z2 X1*X2")
   , assertShowEqual "parseGpp mixed" 
-      (Gpp SPP Nothing [N [PauliInd PX 1, PauliInd PY 2, PauliInd PZ 3]]) 
+      (Gpp SPP Nothing Nothing [N [PauliInd PX 1, PauliInd PY 2, PauliInd PZ 3]]) 
       (run parseGpp "SPP !X1*Y2*Z3")
   ]
 
@@ -195,43 +195,43 @@ testParseNoise :: Test
 testParseNoise = TestList
   -- Basic noise without tag
   [ assertShowEqual "parseNoise X_ERROR with args" 
-      (NoiseNormal X_ERROR Nothing [0.01] [Q 5]) 
+      (NoiseNormal X_ERROR Nothing Nothing [0.01] [Q 5]) 
       (run parseNoise "X_ERROR(0.01) 5")
   , assertShowEqual "parseNoise DEPOLARIZE1" 
-      (NoiseNormal DEPOLARIZE1 Nothing [0.01] [Q 2,Q 3]) 
+      (NoiseNormal DEPOLARIZE1 Nothing Nothing [0.01] [Q 2,Q 3]) 
       (run parseNoise "DEPOLARIZE1(0.01) 2 3")
   -- II_ERROR variants
   , assertShowEqual "parseNoise II_ERROR no args no tag" 
-      (NoiseNormal II_ERROR Nothing [] [Q 0,Q 1]) 
+      (NoiseNormal II_ERROR Nothing Nothing [] [Q 0,Q 1]) 
       (run parseNoise "II_ERROR 0 1")
   , assertShowEqual "parseNoise II_ERROR args no tag" 
-      (NoiseNormal II_ERROR Nothing [0.1] [Q 0,Q 1]) 
+      (NoiseNormal II_ERROR Nothing Nothing [0.1] [Q 0,Q 1]) 
       (run parseNoise "II_ERROR(0.1) 0 1")
-  , assertShowEqual "parseNoise II_ERROR tag no args" 
-      (NoiseNormal II_ERROR (Just (ErrorTag TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR)) [] [Q 0,Q 1]) 
+  , assertShowEqual "parseNoise II_ERROR ErrorTag no args" 
+      (NoiseNormal II_ERROR Nothing (Just (ErrorTag TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR)) [] [Q 0,Q 1]) 
       (run parseNoise "II_ERROR[TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR] 0 1")
-  , assertShowEqual "parseNoise II_ERROR tag coef no args" 
-      (NoiseNormal II_ERROR (Just (ErrorTagCoef TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR 0.1)) [] [Q 0,Q 1]) 
+  , assertShowEqual "parseNoise II_ERROR ErrorTag coef no args" 
+      (NoiseNormal II_ERROR Nothing (Just (ErrorTagCoef TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR 0.1)) [] [Q 0,Q 1]) 
       (run parseNoise "II_ERROR[TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR:0.1] 0 1")
-  , assertShowEqual "parseNoise II_ERROR tag with args" 
-      (NoiseNormal II_ERROR (Just (ErrorTag MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS)) [0.1,0.2] [Q 0,Q 1]) 
+  , assertShowEqual "parseNoise II_ERROR ErrorTag with args" 
+      (NoiseNormal II_ERROR Nothing (Just (ErrorTag MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS)) [0.1,0.2] [Q 0,Q 1]) 
       (run parseNoise "II_ERROR[MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS](0.1, 0.2) 0 1")
-  , assertShowEqual "parseNoise II_ERROR tag coef with args" 
-      (NoiseNormal II_ERROR (Just (ErrorTagCoef MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS 0.5)) [0.1,0.2] [Q 0,Q 1]) 
+  , assertShowEqual "parseNoise II_ERROR ErrorTag coef with args" 
+      (NoiseNormal II_ERROR Nothing (Just (ErrorTagCoef MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS 0.5)) [0.1,0.2] [Q 0,Q 1]) 
       (run parseNoise "II_ERROR[MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS:0.5](0.1, 0.2) 0 1")
   -- I_ERROR variants
   , assertShowEqual "parseNoise I_ERROR no args no tag" 
-      (NoiseNormal I_ERROR Nothing [] [Q 0]) 
+      (NoiseNormal I_ERROR Nothing Nothing [] [Q 0]) 
       (run parseNoise "I_ERROR 0")
   , assertShowEqual "parseNoise I_ERROR args no tag" 
-      (NoiseNormal I_ERROR Nothing [0.1] [Q 0]) 
+      (NoiseNormal I_ERROR Nothing Nothing [0.1] [Q 0]) 
       (run parseNoise "I_ERROR(0.1) 0")
   -- CORRELATED_ERROR (NoiseE type)
   , assertShowEqual "parseNoise CORRELATED_ERROR" 
-      (NoiseE CORRELATED_ERROR 0.2 [PauliInd PX 1,PauliInd PY 2]) 
+      (NoiseE CORRELATED_ERROR Nothing 0.2 [PauliInd PX 1,PauliInd PY 2]) 
       (run parseNoise "CORRELATED_ERROR(0.2) X1 Y2")
   , assertShowEqual "parseNoise E (alias)" 
-      (NoiseE E 0.15 [PauliInd PZ 3]) 
+      (NoiseE E Nothing 0.15 [PauliInd PZ 3]) 
       (run parseNoise "E(0.15) Z3")
   ]
 
@@ -257,17 +257,17 @@ testParseFInd = TestList
 testParseAnn :: Test
 testParseAnn = TestList
   [ assertShowEqual "parseAnn TICK" 
-      (Ann TICK [] []) (run parseAnn "TICK")
+      (Ann TICK Nothing [] []) (run parseAnn "TICK")
   , assertShowEqual "parseAnn DETECTOR with coords and rec" 
-      (Ann DETECTOR [In 1, In 0] [QRec (Rec (-3)), QRec (Rec (-6))]) 
+      (Ann DETECTOR Nothing [In 1, In 0] [QRec (Rec (-3)), QRec (Rec (-6))]) 
       (run parseAnn "DETECTOR(1, 0) rec[-3] rec[-6]")
   , assertShowEqual "parseAnn DETECTOR without coords" 
-      (Ann DETECTOR [] [QRec (Rec (-3)), QRec (Rec (-4))]) 
+      (Ann DETECTOR Nothing [] [QRec (Rec (-3)), QRec (Rec (-4))]) 
       (run parseAnn "DETECTOR rec[-3] rec[-4]")
   , assertShowEqual "parseAnn SHIFT_COORDS" 
-      (Ann SHIFT_COORDS [Fl 500.5] []) 
+      (Ann SHIFT_COORDS Nothing [Fl 500.5] []) 
       (run parseAnn "SHIFT_COORDS(500.5)")
   , assertShowEqual "parseAnn OBSERVABLE_INCLUDE" 
-      (Ann OBSERVABLE_INCLUDE [In 0] [QRec (Rec (-1))]) 
+      (Ann OBSERVABLE_INCLUDE Nothing [In 0] [QRec (Rec (-1))]) 
       (run parseAnn "OBSERVABLE_INCLUDE(0) rec[-1]")
   ]

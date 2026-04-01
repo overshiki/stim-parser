@@ -45,7 +45,8 @@ gateTyList = [I ..]
 --    CY sweep[5] 7 sweep[5] 8
 --    CY rec[-1] 6
 --    CY 2 5 4 2
-data Gate = Gate GateTy [Q] 
+--    H[custom] 0
+data Gate = Gate GateTy (Maybe Tag) [Q] 
   deriving (Show)
 
 -- Collapsing Gates and Pair Measurement Gates 
@@ -65,12 +66,13 @@ measureTyList = [M ..]
 --    MZ !5
 --       only single ph
 --    MZ(0.02) 2 3 5
+--    M[custom] 0
 -- Pair Measurement Gates examples:
 --    MXX 1 2
 --    MXX !1 2
 --    MXX(0.01) 2 3
 
-data Measure = Measure MeasureTy (Maybe Ph) [Q]
+data Measure = Measure MeasureTy (Maybe Tag) (Maybe Ph) [Q]
   deriving (Show)
 
 -- Generalized Pauli Product Gates 
@@ -89,8 +91,9 @@ gppTyList = [MPP ..]
 --    MPP X1*Y2 !Z3*Z4*Z5
 --    MPP(0.001) Z1*Z2 X1*X2
 --    SPP !X1*Y2*Z3
+--    MPP[custom] X1*X2
 
-data Gpp = Gpp GppTy (Maybe Ph) [PauliChain]
+data Gpp = Gpp GppTy (Maybe Tag) (Maybe Ph) [PauliChain]
   deriving (Show)
 
 -- Noise Channels 
@@ -141,8 +144,13 @@ data ErrorTag = ErrorTag ErrorTagTy
   deriving (Show)
 
 data Noise = 
-  NoiseNormal NoiseTy (Maybe ErrorTag) [Ph] [Q]
-  | NoiseE NoiseTy Float [PauliInd]
+  NoiseNormal NoiseTy (Maybe Tag) (Maybe ErrorTag) [Ph] [Q]
+  | NoiseE NoiseTy (Maybe Tag) Float [PauliInd]
+  deriving (Show)
+
+-- General Instruction Tag (v1.15+)
+-- Examples: TICK[100ns], X_ERROR[custom](0.1) 0
+newtype Tag = Tag String
   deriving (Show)
 
 -- Annotations 
@@ -163,6 +171,7 @@ annTyList = [DETECTOR ..]
 --    SHIFT_COORDS(500.5)
 --    SHIFT_COORDS(0, 1)  # Advance 2nd coordinate to track loop iterations.
 --    TICK
+--    TICK[100ns]
 
 -- seperate Integer and Float cases
 data FInd = In Ind | Fl Float
@@ -184,7 +193,7 @@ instance Num FInd where
 
 newtype Coords = Coords [FInd]
 
-data Ann = Ann AnnTy [FInd] [Q]
+data Ann = Ann AnnTy (Maybe Tag) [FInd] [Q]
   deriving (Show)
 
 -- repeat example:
