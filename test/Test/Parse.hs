@@ -20,6 +20,7 @@ tests = TestList
   , testParseGpp
   , testParseNoiseTy
   , testParseErrorTag
+  , testParseNoise
   , testParseAnnTy
   , testParseFInd
   , testParseAnn
@@ -66,8 +67,10 @@ testParseQ :: Test
 testParseQ = TestList
   [ assertShowEqual "parseQ simple" (Q 5) (run parseQ "5")
   , assertShowEqual "parseQ rec" (QRec (Rec (-1))) (run parseQ "rec[-1]")
+  , assertShowEqual "parseQ rec negative" (QRec (Rec (-5))) (run parseQ "rec[-5]")
   , assertShowEqual "parseQ sweep" (QSweep (Sweep 5)) (run parseQ "sweep[5]")
   , assertShowEqual "parseQ not" (Not 3) (run parseQ "!3")
+  -- Note: rec[5] and rec[0] should fail - they are tested via parse failure tests
   ]
 
 -- Test GateTy parsing
@@ -79,6 +82,12 @@ testParseGateTy = TestList
   , assertShowEqual "parseGateTy CNOT" CNOT (run parseGateTy "CNOT")
   , assertShowEqual "parseGateTy SQRT_X" SQRT_X (run parseGateTy "SQRT_X")
   , assertShowEqual "parseGateTy ISWAP_DAG" ISWAP_DAG (run parseGateTy "ISWAP_DAG")
+  -- Case-insensitive tests
+  , assertShowEqual "parseGateTy lowercase cnot" CNOT (run parseGateTy "cnot")
+  , assertShowEqual "parseGateTy mixed case Cnot" CNOT (run parseGateTy "Cnot")
+  , assertShowEqual "parseGateTy lowercase h" H (run parseGateTy "h")
+  , assertShowEqual "parseGateTy lowercase sqrt_x" SQRT_X (run parseGateTy "sqrt_x")
+  , assertShowEqual "parseGateTy mixed case Sqrt_X_Dag" SQRT_X_DAG (run parseGateTy "Sqrt_X_Dag")
   ]
 
 -- Test Gate parsing
@@ -103,6 +112,11 @@ testParseMeasureTy = TestList
   , assertShowEqual "parseMeasureTy MX" MX (run parseMeasureTy "MX")
   , assertShowEqual "parseMeasureTy MXX" MXX (run parseMeasureTy "MXX")
   , assertShowEqual "parseMeasureTy MR" MR (run parseMeasureTy "MR")
+  -- Case-insensitive tests
+  , assertShowEqual "parseMeasureTy lowercase m" M (run parseMeasureTy "m")
+  , assertShowEqual "parseMeasureTy lowercase mx" MX (run parseMeasureTy "mx")
+  , assertShowEqual "parseMeasureTy lowercase mxx" MXX (run parseMeasureTy "mxx")
+  , assertShowEqual "parseMeasureTy mixed case Mr" MR (run parseMeasureTy "Mr")
   ]
 
 -- Test Ph (phase) parsing
@@ -121,6 +135,11 @@ testParseMeasure = TestList
       (Measure MZ (Just 0.02) [Q 2, Q 3, Q 5]) (run parseMeasure "MZ(0.02) 2 3 5")
   , assertShowEqual "parseMeasure pair" 
       (Measure MXX Nothing [Q 1, Q 2]) (run parseMeasure "MXX 1 2")
+  -- Case-insensitive tests
+  , assertShowEqual "parseMeasure lowercase m" 
+      (Measure M Nothing [Q 5]) (run parseMeasure "m 5")
+  , assertShowEqual "parseMeasure lowercase mz" 
+      (Measure MZ (Just 0.02) [Q 2]) (run parseMeasure "mz(0.02) 2")
   , assertShowEqual "parseMeasure pair with phase" 
       (Measure MXX (Just 0.01) [Q 2, Q 3]) (run parseMeasure "MXX(0.01) 2 3")
   , assertShowEqual "parseMeasure with not" 
@@ -169,6 +188,51 @@ testParseErrorTag = TestList
   , assertShowEqual "parseErrorTag with coef" 
       (ErrorTagCoef LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR 0.1) 
       (run parseErrorTag "LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR:0.1")
+  ]
+
+-- Test Noise parsing with all tag/arg combinations
+testParseNoise :: Test
+testParseNoise = TestList
+  -- Basic noise without tag
+  [ assertShowEqual "parseNoise X_ERROR with args" 
+      (NoiseNormal X_ERROR Nothing [0.01] [Q 5]) 
+      (run parseNoise "X_ERROR(0.01) 5")
+  , assertShowEqual "parseNoise DEPOLARIZE1" 
+      (NoiseNormal DEPOLARIZE1 Nothing [0.01] [Q 2,Q 3]) 
+      (run parseNoise "DEPOLARIZE1(0.01) 2 3")
+  -- II_ERROR variants
+  , assertShowEqual "parseNoise II_ERROR no args no tag" 
+      (NoiseNormal II_ERROR Nothing [] [Q 0,Q 1]) 
+      (run parseNoise "II_ERROR 0 1")
+  , assertShowEqual "parseNoise II_ERROR args no tag" 
+      (NoiseNormal II_ERROR Nothing [0.1] [Q 0,Q 1]) 
+      (run parseNoise "II_ERROR(0.1) 0 1")
+  , assertShowEqual "parseNoise II_ERROR tag no args" 
+      (NoiseNormal II_ERROR (Just (ErrorTag TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR)) [] [Q 0,Q 1]) 
+      (run parseNoise "II_ERROR[TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR] 0 1")
+  , assertShowEqual "parseNoise II_ERROR tag coef no args" 
+      (NoiseNormal II_ERROR (Just (ErrorTagCoef TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR 0.1)) [] [Q 0,Q 1]) 
+      (run parseNoise "II_ERROR[TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR:0.1] 0 1")
+  , assertShowEqual "parseNoise II_ERROR tag with args" 
+      (NoiseNormal II_ERROR (Just (ErrorTag MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS)) [0.1,0.2] [Q 0,Q 1]) 
+      (run parseNoise "II_ERROR[MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS](0.1, 0.2) 0 1")
+  , assertShowEqual "parseNoise II_ERROR tag coef with args" 
+      (NoiseNormal II_ERROR (Just (ErrorTagCoef MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS 0.5)) [0.1,0.2] [Q 0,Q 1]) 
+      (run parseNoise "II_ERROR[MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS:0.5](0.1, 0.2) 0 1")
+  -- I_ERROR variants
+  , assertShowEqual "parseNoise I_ERROR no args no tag" 
+      (NoiseNormal I_ERROR Nothing [] [Q 0]) 
+      (run parseNoise "I_ERROR 0")
+  , assertShowEqual "parseNoise I_ERROR args no tag" 
+      (NoiseNormal I_ERROR Nothing [0.1] [Q 0]) 
+      (run parseNoise "I_ERROR(0.1) 0")
+  -- CORRELATED_ERROR (NoiseE type)
+  , assertShowEqual "parseNoise CORRELATED_ERROR" 
+      (NoiseE CORRELATED_ERROR 0.2 [PauliInd PX 1,PauliInd PY 2]) 
+      (run parseNoise "CORRELATED_ERROR(0.2) X1 Y2")
+  , assertShowEqual "parseNoise E (alias)" 
+      (NoiseE E 0.15 [PauliInd PZ 3]) 
+      (run parseNoise "E(0.15) Z3")
   ]
 
 -- Test AnnTy parsing

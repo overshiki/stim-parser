@@ -15,6 +15,7 @@ import Control.Monad.State.Lazy
 import qualified Data.HashMap.Strict as HS
 import qualified Data.Set as Set
 import Data.Maybe
+import Data.Char (toLower)
 
 type Parser = Parsec Void String
 -- type Parser = ParsecT Void String (State Env)
@@ -32,6 +33,18 @@ lexeme = L.lexeme sc
 
 lstring :: String -> Parser String
 lstring = lexeme . string
+
+-- | Case-insensitive string parser (custom implementation)
+stringCI :: String -> Parser String
+stringCI s = try $ mapM charCI s
+  where
+    charCI c = do
+      x <- satisfy (\x -> toLower x == toLower c)
+      return x  -- Return the actual matched character, not the expected one
+
+-- | Case-insensitive lexeme string parser  
+lstringCI :: String -> Parser String
+lstringCI = lexeme . stringCI
 
 safeManyTill :: MonadParsec e s f => f a -> f b -> f [a]
 safeManyTill p end = go

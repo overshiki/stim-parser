@@ -10,9 +10,6 @@ import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
--- TODO: why all the parsing orders are tricky? because when some parser fail in the half way, it will not return to its original state
--- should consider improving this
-
 -- parsePauli is not lexemed
 parsePauli :: Parser Pauli
 parsePauli = 
@@ -61,7 +58,9 @@ parseQ = do
       lstring "["
       i <- parseInt
       lstring "]"
-      return $ QRec (Rec i)
+      if i < 0 
+        then return $ QRec (Rec i)
+        else fail "rec[] index must be negative (e.g., rec[-1])"
     qsweep = do
       lstring "sweep"
       lstring "["
@@ -77,6 +76,10 @@ parseQ = do
 parseShow :: (Show a) => a -> Parser a
 parseShow x = lstring (show x) >> return x
 
+-- | Case-insensitive version of parseShow
+parseShowCI :: (Show a) => a -> Parser a
+parseShowCI x = lstringCI (show x) >> return x
+
 -- parseEnum :: (Show a) => [a] -> Parser a
 -- parseEnum (x:xs) = do
 --   let
@@ -86,7 +89,7 @@ parseShow x = lstring (show x) >> return x
 
 parseEnum :: (Show a) => [a] -> Parser a
 parseEnum [] = error "value error"
-parseEnum xs = msum $ map parseShow $ sortOn (negate . length . show) xs
+parseEnum xs = msum $ map parseShowCI $ sortOn (negate . length . show) xs
 
 parseGateTy :: Parser GateTy
 parseGateTy = parseEnum gateTyList
@@ -219,7 +222,7 @@ parseNoise = do
       lstring "("
       ph <- parseFloat
       lstring ")"
-      ps <- parseExhaust parsePauliInd
+      ps <- some (lexeme parsePauliInd)
       return $ NoiseE ty ph ps 
     -- parser for case: II_ERROR 0 1
     pm3 = do 
