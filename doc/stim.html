@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>stim.html</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+
+</head>
+
+<body>
+
+<h1 id="stim-circuit-file-format-.stim-reference">Stim Circuit File Format (.stim) Reference</h1>
+<h2 id="overview">Overview</h2>
+<p>Stim is a fast stabilizer circuit simulator for quantum error correction (QEC) circuits. The <code>.stim</code> file format is a human-readable specification of an annotated stabilizer circuit. This document describes the complete syntax and semantics of the <code>.stim</code> file format based on the original <a href="https://github.com/quantumlib/stim">Stim project</a> by Craig Gidney.</p>
+<hr />
+<h2 id="file-encoding">File Encoding</h2>
+<ul>
+<li>Stim circuit files are always encoded using <strong>UTF-8</strong></li>
+<li>Non-ASCII characters are only valid inside comments and tags</li>
+<li>Case-insensitive instruction names</li>
+</ul>
+<hr />
+<h2 id="basic-syntax">Basic Syntax</h2>
+<h3 id="file-structure">File Structure</h3>
+<p>A stim circuit file consists of a series of lines. Each line can be: - <strong>Blank</strong> (empty or whitespace-only) - <strong>Instruction</strong> - a quantum operation, annotation, or control flow - <strong>Block initiator</strong> - starts a block with <code>{</code> - <strong>Block terminator</strong> - ends a block with <code>}</code></p>
+<h3 id="line-format">Line Format</h3>
+<pre><code>&lt;LINE&gt; ::= &lt;INDENT&gt; (&lt;INSTRUCTION&gt; | &lt;BLOCK_START&gt; | &lt;BLOCK_END&gt;)? &lt;COMMENT&gt;? &#39;\n&#39;
+&lt;INDENT&gt; ::= /[ \t]*/          # Leading whitespace (decorative)
+&lt;COMMENT&gt; ::= &#39;#&#39; /[^\n]*/     # Hash-style comments to end of line</code></pre>
+<h3 id="instruction-format">Instruction Format</h3>
+<pre><code>&lt;INSTRUCTION&gt; ::= &lt;NAME&gt; &lt;TAG&gt;? &lt;PARENS_ARGUMENTS&gt;? &lt;TARGETS&gt;
+&lt;TAG&gt; ::= &#39;[&#39; /[^\r\]\n]/* &#39;]&#39;              # Optional tag (v1.15+)
+&lt;PARENS_ARGUMENTS&gt; ::= &#39;(&#39; &lt;ARGUMENTS&gt; &#39;)&#39;  # Optional arguments
+&lt;ARGUMENTS&gt; ::= /[ \t]*/ &lt;ARG&gt; /[ \t]*/ (&#39;,&#39; &lt;ARGUMENTS&gt;)?
+&lt;TARGETS&gt; ::= /[ \t]+/ &lt;TARG&gt; &lt;TARGETS&gt;?</code></pre>
+<h3 id="names">Names</h3>
+<pre><code>&lt;NAME&gt; ::= /[a-zA-Z][a-zA-Z0-9_]*/   # Starts with letter, followed by letters/digits/underscores</code></pre>
+<h3 id="arguments">Arguments</h3>
+<p>Arguments are double-precision floating-point numbers representing probabilities or other numeric parameters.</p>
+<pre><code>&lt;ARG&gt; ::= &lt;double&gt;   # e.g., 0.001, 0.5, -1.0</code></pre>
+<hr />
+<h2 id="targets">Targets</h2>
+<p>Targets specify which qubits or measurement records an operation affects.</p>
+<h3 id="target-types">Target Types</h3>
+<pre><code>&lt;TARG&gt; ::= &lt;QUBIT_TARGET&gt; 
+         | &lt;MEASUREMENT_RECORD_TARGET&gt; 
+         | &lt;SWEEP_BIT_TARGET&gt; 
+         | &lt;PAULI_TARGET&gt; 
+         | &lt;COMBINER_TARGET&gt;</code></pre>
+<h4 id="qubit-target">1. Qubit Target</h4>
+<pre><code>&lt;QUBIT_TARGET&gt; ::= &#39;!&#39;? &lt;uint&gt;</code></pre>
+<ul>
+<li>A non-negative integer identifying a qubit</li>
+<li>Optional <code>!</code> prefix negates the measurement result</li>
+<li>Examples: <code>0</code>, <code>5</code>, <code>!3</code> (qubit 3 with negation)</li>
+</ul>
+<h4 id="measurement-record-target">2. Measurement Record Target</h4>
+<pre><code>&lt;MEASUREMENT_RECORD_TARGET&gt; ::= &quot;rec[(-)?&quot; &lt;uint&gt; &quot;]&quot;</code></pre>
+<ul>
+<li>References a previous measurement result</li>
+<li>Negative indices count from most recent measurement (<code>rec[-1]</code> = most recent)</li>
+<li>Used for feedforward operations and detector annotations</li>
+<li>Examples: <code>rec[-1]</code>, <code>rec[-3]</code>, <code>rec[0]</code></li>
+</ul>
+<h4 id="sweep-bit-target">3. Sweep Bit Target</h4>
+<pre><code>&lt;SWEEP_BIT_TARGET&gt; ::= &quot;sweep[&quot; &lt;uint&gt; &quot;]&quot;</code></pre>
+<ul>
+<li>References a bit from sweep data for parameterized simulations</li>
+<li>Examples: <code>sweep[0]</code>, <code>sweep[5]</code></li>
+</ul>
+<h4 id="pauli-target">4. Pauli Target</h4>
+<pre><code>&lt;PAULI_TARGET&gt; ::= &#39;!&#39;? /[XYZ]/ &lt;uint&gt;</code></pre>
+<ul>
+<li>Specifies a Pauli operator (X, Y, or Z) acting on a qubit</li>
+<li>Used in correlated error definitions and Pauli product measurements</li>
+<li>Optional <code>!</code> prefix negates the result</li>
+<li>Examples: <code>X5</code>, <code>Z3</code>, <code>!Y2</code></li>
+</ul>
+<h4 id="combiner-target">5. Combiner Target</h4>
+<pre><code>&lt;COMBINER_TARGET&gt; ::= &#39;*&#39;</code></pre>
+<ul>
+<li>Combines adjacent Pauli targets into a product</li>
+<li>Used in Pauli chains: <code>X1*Y2*Z3</code></li>
+</ul>
+<hr />
+<h2 id="instruction-categories">Instruction Categories</h2>
+<h3 id="clifford-gates">1. Clifford Gates</h3>
+<p>Single-qubit Clifford gates: | Gate | Description | |——|————-| | <code>I</code> | Identity | | <code>X</code>, <code>Y</code>, <code>Z</code> | Pauli gates | | <code>H</code> | Hadamard | | <code>H_XY</code>, <code>H_XZ</code>, <code>H_YZ</code> | Hadamard-like rotations between planes | | <code>H_NXY</code>, <code>H_NXZ</code>, <code>H_NYZ</code> | Negated Hadamard variants | | <code>S</code> | Phase gate (√Z) | | <code>S_DAG</code> | Adjoint phase gate | | <code>SQRT_X</code>, <code>SQRT_X_DAG</code> | √X and its adjoint | | <code>SQRT_Y</code>, <code>SQRT_Y_DAG</code> | √Y and its adjoint | | <code>SQRT_Z</code>, <code>SQRT_Z_DAG</code> | √Z and its adjoint (same as S, S_DAG) | | <code>C_NXYZ</code> .. <code>C_ZYX</code> | 24 single-qubit Clifford rotations |</p>
+<p>Two-qubit Clifford gates: | Gate | Description | |——|————-| | <code>CNOT</code>, <code>CX</code> | Controlled-NOT | | <code>CY</code> | Controlled-Y | | <code>CZ</code> | Controlled-Z | | <code>CZSWAP</code>, <code>CXSWAP</code> | Controlled-SWAP variants | | <code>SWAP</code> | SWAP gate | | <code>SWAPCX</code>, <code>SWAPCZ</code> | SWAP followed by CX/CZ | | <code>ISWAP</code>, <code>ISWAP_DAG</code> | iSWAP and its adjoint | | <code>SQRT_XX</code>, <code>SQRT_XX_DAG</code> | √(XX) and adjoint | | <code>SQRT_YY</code>, <code>SQRT_YY_DAG</code> | √(YY) and adjoint | | <code>SQRT_ZZ</code>, <code>SQRT_ZZ_DAG</code> | √(ZZ) and adjoint | | <code>XCX</code>, <code>XCY</code>, <code>XCZ</code> | X-controlled rotations | | <code>YCX</code>, <code>YCY</code>, <code>YCZ</code> | Y-controlled rotations | | <code>ZCX</code>, <code>ZCY</code>, <code>ZCZ</code> | Z-controlled rotations | | <code>II</code> | Two-qubit identity |</p>
+<p><strong>Syntax:</strong></p>
+<pre><code>GATE_NAME &lt;target1&gt; &lt;target2&gt; ...</code></pre>
+<p><strong>Examples:</strong></p>
+<pre class="stim"><code>H 0 1 2          # Hadamard on qubits 0, 1, 2
+CNOT 0 1         # CNOT with control 0, target 1
+CNOT 0 1 2 3     # Two CNOTs: (0→1) and (2→3)
+CY sweep[5] 7    # Controlled-Y with sweep bit control
+CZ rec[-1] 5     # Controlled-Z conditioned on last measurement</code></pre>
+<h3 id="collapsing-gates-measurements-and-resets">2. Collapsing Gates (Measurements and Resets)</h3>
+<h4 id="single-qubit-measurements">Single-Qubit Measurements</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Gate</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>M</code></td>
+<td>Measure in computational (Z) basis</td>
+</tr>
+<tr class="even">
+<td><code>MX</code></td>
+<td>Measure in X basis</td>
+</tr>
+<tr class="odd">
+<td><code>MY</code></td>
+<td>Measure in Y basis</td>
+</tr>
+<tr class="even">
+<td><code>MZ</code></td>
+<td>Measure in Z basis (same as M)</td>
+</tr>
+<tr class="odd">
+<td><code>MR</code></td>
+<td>Measure and reset to |0⟩</td>
+</tr>
+<tr class="even">
+<td><code>MRX</code></td>
+<td>Measure in X basis and reset to |+⟩</td>
+</tr>
+<tr class="odd">
+<td><code>MRY</code></td>
+<td>Measure in Y basis and reset</td>
+</tr>
+<tr class="even">
+<td><code>MRZ</code></td>
+<td>Measure in Z basis and reset to |0⟩ (same as MR)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="two-qubit-measurements">Two-Qubit Measurements</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Gate</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>MXX</code></td>
+<td>Measure XX parity</td>
+</tr>
+<tr class="even">
+<td><code>MYY</code></td>
+<td>Measure YY parity</td>
+</tr>
+<tr class="odd">
+<td><code>MZZ</code></td>
+<td>Measure ZZ parity</td>
+</tr>
+</tbody>
+</table>
+<h4 id="resets">Resets</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Gate</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>R</code></td>
+<td>Reset to |0⟩ (Z basis)</td>
+</tr>
+<tr class="even">
+<td><code>RX</code></td>
+<td>Reset to |+⟩ (X basis)</td>
+</tr>
+<tr class="odd">
+<td><code>RY</code></td>
+<td>Reset to Y eigenstate</td>
+</tr>
+<tr class="even">
+<td><code>RZ</code></td>
+<td>Reset to |0⟩ (same as R)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Syntax:</strong></p>
+<pre><code>MEASURE_NAME(&lt;probability&gt;)? &lt;target1&gt; &lt;target2&gt; ...</code></pre>
+<p>The optional probability argument specifies a flip probability applied to the measurement result.</p>
+<p><strong>Examples:</strong></p>
+<pre class="stim"><code>M 0 1 2          # Measure qubits 0, 1, 2 in Z basis
+MZ(0.02) 2 3     # Measure with 2% flip probability
+MXX !1 2         # Measure XX parity, negate result for qubit 1
+MX 5             # Measure qubit 5 in X basis
+MR 1 3 5         # Measure and reset qubits 1, 3, 5</code></pre>
+<h3 id="generalized-pauli-product-gates">3. Generalized Pauli Product Gates</h3>
+<p>These gates measure or apply Pauli product operators.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Gate</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>MPP</code></td>
+<td>Measure Pauli product</td>
+</tr>
+<tr class="even">
+<td><code>SPP</code></td>
+<td>Apply Pauli product</td>
+</tr>
+<tr class="odd">
+<td><code>SPP_DAG</code></td>
+<td>Apply adjoint Pauli product</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Syntax:</strong></p>
+<pre><code>GATE_NAME(&lt;probability&gt;)? &lt;pauli_chain1&gt; &lt;pauli_chain2&gt; ...</code></pre>
+<p><strong>Pauli Chain Syntax:</strong></p>
+<pre><code>PauliChain ::= [&#39;!&#39;]? &lt;Pauli&gt; &lt;qubit&gt; (&#39;*&#39; &lt;Pauli&gt; &lt;qubit&gt;)*
+Pauli ::= &#39;X&#39; | &#39;Y&#39; | &#39;Z&#39;</code></pre>
+<p><strong>Examples:</strong></p>
+<pre class="stim"><code>MPP X2*X3*X5*X7           # Measure product X₂X₃X₅X₇
+MPP !Z5                   # Measure Z₅ with negation
+MPP X1*Y2 !Z3*Z4*Z5       # Measure two products, second negated
+MPP(0.001) Z1*Z2 X1*X2    # Measure with 0.1% flip probability
+SPP !X1*Y2*Z3             # Apply Pauli product with negation</code></pre>
+<h3 id="noise-channels">4. Noise Channels</h3>
+<p>Noise operations represent errors in the circuit.</p>
+<h4 id="single-qubit-noise">Single-Qubit Noise</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Gate</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>X_ERROR(p)</code></td>
+<td>Apply X with probability p</td>
+</tr>
+<tr class="even">
+<td><code>Y_ERROR(p)</code></td>
+<td>Apply Y with probability p</td>
+</tr>
+<tr class="odd">
+<td><code>Z_ERROR(p)</code></td>
+<td>Apply Z with probability p</td>
+</tr>
+<tr class="even">
+<td><code>I_ERROR(p)</code></td>
+<td>Apply identity with probability p (leakage)</td>
+</tr>
+<tr class="odd">
+<td><code>DEPOLARIZE1(p)</code></td>
+<td>Apply random Pauli (X/Y/Z) with probability p</td>
+</tr>
+<tr class="even">
+<td><code>PAULI_CHANNEL_1(px, py, pz)</code></td>
+<td>Apply X/Y/Z with given probabilities</td>
+</tr>
+</tbody>
+</table>
+<h4 id="two-qubit-noise">Two-Qubit Noise</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Gate</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>II_ERROR(p)</code></td>
+<td>Two-qubit identity error (leakage)</td>
+</tr>
+<tr class="even">
+<td><code>DEPOLARIZE2(p)</code></td>
+<td>Two-qubit depolarizing noise</td>
+</tr>
+<tr class="odd">
+<td><code>PAULI_CHANNEL_2(...)</code></td>
+<td>Custom two-qubit Pauli channel (15 probabilities)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="special-noise">Special Noise</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Gate</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>HERALDED_ERASE(p)</code></td>
+<td>Erase error with herald</td>
+</tr>
+<tr class="even">
+<td><code>HERALDED_PAULI_CHANNEL_1(...)</code></td>
+<td>Heralded Pauli channel (4 probabilities)</td>
+</tr>
+<tr class="odd">
+<td><code>E</code> / <code>CORRELATED_ERROR(p)</code></td>
+<td>Correlated Pauli error</td>
+</tr>
+<tr class="even">
+<td><code>ELSE_CORRELATED_ERROR(p)</code></td>
+<td>Conditional correlated error</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Syntax:</strong></p>
+<pre><code>NOISE_NAME(&lt;arg1&gt;, &lt;arg2&gt;, ...) &lt;target1&gt; &lt;target2&gt; ...
+CORRELATED_ERROR(p) &lt;pauli_target1&gt; &lt;pauli_target2&gt; ...</code></pre>
+<p><strong>Special Error Tags (for advanced simulators):</strong></p>
+<pre><code>II_ERROR[&lt;tag&gt;] &lt;target1&gt; &lt;target2&gt; ...
+I_ERROR[&lt;tag&gt;] &lt;target1&gt; ...</code></pre>
+<p>Available tags: - <code>TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR</code> - <code>LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR</code> - <code>MULTIPLE_TWO_QUBIT_NOISE_MECHANISMS</code> - <code>MULTIPLE_NOISE_MECHANISMS</code></p>
+<p>Tag with coefficient: <code>TAG_NAME:value</code></p>
+<p><strong>Examples:</strong></p>
+<pre class="stim"><code>DEPOLARIZE1(0.01) 2 3 5           # 1% depolarizing on qubits 2, 3, 5
+DEPOLARIZE2(0.01) 0 1 2 3         # Two-qubit depolarizing on pairs (0,1) and (2,3)
+X_ERROR(0.001) 5 42               # 0.1% X errors on qubits 5 and 42
+PAULI_CHANNEL_1(0.1, 0.15, 0.2) 1 2 4   # Custom Pauli channel
+CORRELATED_ERROR(0.2) X1 Y2       # Correlated X₁Y₂ error with 20% probability
+ELSE_CORRELATED_ERROR(0.25) Z2 Z3 # Conditional Z₂Z₃ error
+II_ERROR[LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR:0.1] 0 1</code></pre>
+<h3 id="annotations">5. Annotations</h3>
+<p>Annotations provide metadata for visualization, detector definitions, and circuit structure.</p>
+<h4 id="tick">TICK</h4>
+<pre><code>TICK</code></pre>
+<p>Marks a cycle boundary in the circuit. Used for timing visualization and noise modeling.</p>
+<h4 id="qubit_coords">QUBIT_COORDS</h4>
+<pre><code>QUBIT_COORDS(&lt;x&gt;, &lt;y&gt;?, &lt;z&gt;?) &lt;qubit&gt;</code></pre>
+<p>Assign spatial coordinates to a qubit for visualization.</p>
+<p><strong>Examples:</strong></p>
+<pre class="stim"><code>QUBIT_COORDS(0, 0) 0      # 2D coordinate
+QUBIT_COORDS(1, 2, 3) 5   # 3D coordinate</code></pre>
+<h4 id="detector">DETECTOR</h4>
+<pre><code>DETECTOR(&lt;coord1&gt;, &lt;coord2&gt;, ...)? &lt;rec_target1&gt; &lt;rec_target2&gt; ...</code></pre>
+<p>Defines a detector - a set of measurements that should have deterministic parity. Used for error detection in QEC.</p>
+<p><strong>Examples:</strong></p>
+<pre class="stim"><code>DETECTOR(1, 0) rec[-3] rec[-6]      # Detector at (1,0) comparing two measurements
+DETECTOR rec[-3] rec[-4]            # Detector without coordinates
+DETECTOR(2, 0, 0) rec[-8]           # 3D coordinates</code></pre>
+<h4 id="observable_include">OBSERVABLE_INCLUDE</h4>
+<pre><code>OBSERVABLE_INCLUDE(&lt;observable_index&gt;) &lt;rec_target1&gt; &lt;rec_target2&gt; ...</code></pre>
+<p>Declares which measurements contribute to a logical observable.</p>
+<p><strong>Example:</strong></p>
+<pre class="stim"><code>OBSERVABLE_INCLUDE(0) rec[-1] rec[-2]    # Logical observable 0</code></pre>
+<h4 id="shift_coords">SHIFT_COORDS</h4>
+<pre><code>SHIFT_COORDS(&lt;offset1&gt;, &lt;offset2&gt;, ...)</code></pre>
+<p>Adds offsets to subsequent coordinate annotations. Useful for repeat blocks.</p>
+<p><strong>Example:</strong></p>
+<pre class="stim"><code>SHIFT_COORDS(0, 1)        # Shift second coordinate by 1
+SHIFT_COORDS(500.5)       # Shift first coordinate</code></pre>
+<h4 id="mpad">MPAD</h4>
+<pre><code>MPAD &lt;target1&gt; &lt;target2&gt; ...</code></pre>
+<p>Measurement padding annotation.</p>
+<hr />
+<h2 id="control-flow">Control Flow</h2>
+<h3 id="repeat-blocks">REPEAT Blocks</h3>
+<p>Repeat a block of instructions multiple times.</p>
+<pre><code>REPEAT &lt;count&gt; {
+    &lt;instructions&gt;
+}</code></pre>
+<p><strong>Example:</strong></p>
+<pre class="stim"><code>REPEAT 1000 {
+    CNOT 0 1
+    M 1
+    DETECTOR rec[-1] rec[-2]
+}</code></pre>
+<p><strong>Note:</strong> Vacuous repeat blocks (count = 0) are not allowed.</p>
+<hr />
+<h2 id="broadcasting">Broadcasting</h2>
+<p>Most operations support broadcasting - applying the same gate to multiple qubits:</p>
+<pre class="stim"><code># Apply H to qubits 0, 1, 2, 3
+H 0 1 2 3
+
+# Apply CNOT pairs: (0→1), (2→3), (4→5)
+CNOT 0 1 2 3 4 5
+
+# Apply DEPOLARIZE2 to pairs: (0,1), (2,3), (4,5)
+DEPOLARIZE2(0.001) 0 1 2 3 4 5</code></pre>
+<hr />
+<h2 id="state-space-semantics">State Space Semantics</h2>
+<p>A Stim simulator maintains:</p>
+<ol type="1">
+<li><p><strong>Qubits</strong> - Start in |0⟩ state. Number of qubits is implied by the largest qubit target.</p></li>
+<li><p><strong>Measurement Record</strong> - Immutable log of all measurement results. New results are appended.</p></li>
+<li><p><strong>Correlated Error Flag</strong> - Boolean tracking if the previous <code>CORRELATED_ERROR</code> occurred, used by <code>ELSE_CORRELATED_ERROR</code>.</p></li>
+</ol>
+<hr />
+<h2 id="complete-examples">Complete Examples</h2>
+<h3 id="example-1-teleportation-circuit">Example 1: Teleportation Circuit</h3>
+<pre class="stim"><code># Distribute a Bell Pair.
+H 0
+CNOT 0 99
+
+# Sender creates an arbitrary qubit state to send.
+H 1
+S 1
+
+# Sender performs a Bell Basis measurement.
+CNOT 0 1
+H 0
+M 0 1  # Measure both of the sender&#39;s qubits.
+
+# Receiver performs frame corrections based on measurement results.
+CZ rec[-2] 99
+CNOT rec[-1] 99</code></pre>
+<h3 id="example-2-repetition-code">Example 2: Repetition Code</h3>
+<pre class="stim"><code># Measure the parities of adjacent data qubits.
+# Data qubits are 0, 2, 4, 6.
+# Measurement qubits are 1, 3, 5.
+CNOT 0 1 2 3 4 5
+CNOT 2 1 4 3 6 5
+MR 1 3 5
+
+# Annotate that the measurements should be deterministic.
+DETECTOR rec[-3]
+DETECTOR rec[-2]
+DETECTOR rec[-1]
+
+# Perform 1000 more rounds of measurements.
+REPEAT 1000 {
+    # Measure the parities of adjacent data qubits.
+    CNOT 0 1 2 3 4 5
+    CNOT 2 1 4 3 6 5
+    MR 1 3 5
+
+    # Annotate that the measurements should agree with previous round.
+    DETECTOR rec[-3] rec[-6]
+    DETECTOR rec[-2] rec[-5]
+    DETECTOR rec[-1] rec[-4]
+}
+
+# Measure data qubits.
+M 0 2 4 6
+
+# Annotate that the data measurements should agree with the parity measurements.
+DETECTOR rec[-3] rec[-4] rec[-7]
+DETECTOR rec[-2] rec[-3] rec[-6]
+DETECTOR rec[-1] rec[-2] rec[-5]
+
+# Declare one of the data qubit measurements to a logical measurement result.
+OBSERVABLE_INCLUDE(0) rec[-1]</code></pre>
+<h3 id="example-3-noisy-surface-code-circuit">Example 3: Noisy Surface Code Circuit</h3>
+<pre class="stim"><code>QUBIT_COORDS(1, 1) 1
+QUBIT_COORDS(2, 0) 2
+RX 1 3 5 8
+R 2 9 11
+TICK
+H 2 11
+DEPOLARIZE1(0.001) 2 11
+TICK
+CX 2 3 16 17 11 12
+DEPOLARIZE2(0.001) 2 3 16 17 11 12
+TICK
+MR 2 9 11
+DETECTOR(2, 0, 0) rec[-3]
+REPEAT 999 {
+    TICK
+    H 2 11
+    DEPOLARIZE1(0.001) 2 11
+    TICK
+    CX 2 3 16 17 11 12
+    DEPOLARIZE2(0.001) 2 3 16 17 11 12
+    TICK
+    MR 2 9 11
+    SHIFT_COORDS(0, 0, 1)
+    DETECTOR(2, 0, 0) rec[-3] rec[-6]
+}
+MX 1 3 5 8
+OBSERVABLE_INCLUDE(0) rec[-1]</code></pre>
+<hr />
+<h2 id="references">References</h2>
+<ol type="1">
+<li><strong>Stim GitHub Repository</strong>: https://github.com/quantumlib/stim</li>
+<li><strong>Stim Paper</strong>: Gidney, C. (2021). “Stim: a fast stabilizer circuit simulator”, Quantum 5, 497</li>
+<li><strong>Gate Reference</strong>: See <a href="https://github.com/quantumlib/stim/wiki">Stim Gate Reference</a></li>
+<li><strong>Python API</strong>: <code>pip install stim</code></li>
+</ol>
+<hr />
+<h2 id="version-history">Version History</h2>
+<p>This documentation is based on Stim v1.13+ file format specifications. Key version features:</p>
+<ul>
+<li><strong>v1.15+</strong>: Added instruction tags (e.g., <code>TICK[100ns]</code>)</li>
+<li>Earlier versions support all core features documented above</li>
+</ul>
+<hr />
+<h2 id="summary-table-instruction-types">Summary Table: Instruction Types</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Category</th>
+<th>Examples</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Clifford Gates</strong></td>
+<td><code>H</code>, <code>CNOT</code>, <code>CZ</code>, <code>S</code>, <code>SWAP</code></td>
+<td>Unitary operations</td>
+</tr>
+<tr class="even">
+<td><strong>Measurements</strong></td>
+<td><code>M</code>, <code>MX</code>, <code>MXX</code>, <code>MR</code></td>
+<td>Collapsing measurements</td>
+</tr>
+<tr class="odd">
+<td><strong>Resets</strong></td>
+<td><code>R</code>, <code>RX</code>, <code>RY</code></td>
+<td>Initialize qubit states</td>
+</tr>
+<tr class="even">
+<td><strong>Pauli Products</strong></td>
+<td><code>MPP</code>, <code>SPP</code></td>
+<td>Multi-qubit Pauli ops</td>
+</tr>
+<tr class="odd">
+<td><strong>Noise</strong></td>
+<td><code>DEPOLARIZE1</code>, <code>X_ERROR</code>, <code>CORRELATED_ERROR</code></td>
+<td>Error channels</td>
+</tr>
+<tr class="even">
+<td><strong>Annotations</strong></td>
+<td><code>TICK</code>, <code>DETECTOR</code>, <code>OBSERVABLE_INCLUDE</code></td>
+<td>Metadata</td>
+</tr>
+<tr class="odd">
+<td><strong>Control Flow</strong></td>
+<td><code>REPEAT</code></td>
+<td>Repetition blocks</td>
+</tr>
+</tbody>
+</table>
+
+</body>
+</html>
