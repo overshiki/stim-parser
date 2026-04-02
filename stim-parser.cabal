@@ -32,7 +32,10 @@ description:        A Haskell library for parsing STIM quantum circuit files int
                     annotations, and complete STIM circuits.
 
 -- The license under which the package is released.
-license:            NONE
+license:            MIT
+
+-- Package category (Parsing, Physics, Quantum)
+category:           Parsing, Physics
 
 -- The package author(s).
 author:             le.niu
@@ -45,7 +48,7 @@ maintainer:         le.niu@hotmail.com
 build-type:         Simple
 
 -- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
-extra-doc-files:    CHANGELOG.md
+extra-doc-files:    README.md
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 -- extra-source-files:
@@ -135,3 +138,7 @@ test-suite stim-parser-test
                     , HUnit              >= 1.6     && < 1.7
                     , mtl                >= 2.2.2   && < 2.4
                     , megaparsec         >= 8.0.0   && < 10
+
+source-repository head
+    type:     git
+    location: https://github.com/overshiki/stim-parser.git
