@@ -24,9 +24,6 @@ parsePauliInd = do
   i <- L.decimal
   return $ PauliInd p i
 
-parseExhaust :: Parser a -> Parser [a]
-parseExhaust parseElm = safeManyTill parseElm (notFollowedBy parseElm)
-
 parsePauliChain :: Parser PauliChain
 parsePauliChain = do 
   let
@@ -120,7 +117,7 @@ parseGate = do
 parseMeasureTy :: Parser MeasureTy
 parseMeasureTy = parseEnum measureTyList
 
-parsePh :: Parser Float 
+parsePh :: Parser Double
 parsePh = do 
   lstring "("
   ph <- parseFloat
@@ -189,33 +186,6 @@ parseErrorTag = do
   -- the order is tricky
   try pm2 <|> pm1
 
-parseTuple :: Parser a -> Parser [a]
-parseTuple pm = do 
-  lstring "("
-  let 
-    parseE = do 
-      f <- pm
-      lstring ","
-      return f
-    parseTuple_ = (++) <$> parseExhaust parseE <*> ((: []) <$> pm)
-  phs <- parseTuple_
-  lstring ")"
-  return phs
-
-parseTupleFloat :: Parser [Float]
-parseTupleFloat = parseTuple parseFloat
-  -- lstring "("
-  -- let 
-  --   parseE = do 
-  --     f <- parseFloat
-  --     lstring ","
-  --     return f
-  --   parseTuple = (++) <$> parseExhaust parseE <*> ((: []) <$> parseFloat)
-  -- phs <- parseTuple
-  -- lstring ")"
-  -- return phs
-
-
 parseNoise :: Parser Noise
 parseNoise = do 
   let 
@@ -273,7 +243,7 @@ parseFInd = do
     pm1 = do 
       i <- parseInt
       return $ In i 
-    -- Fl Float
+    -- Fl Double
     pm2 = do
       f <- parseFloat
       return $ Fl f 

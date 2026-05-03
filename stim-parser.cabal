@@ -49,6 +49,7 @@ build-type:         Simple
 
 -- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
 extra-doc-files:    README.md
+                  , CHANGELOG.md
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 -- extra-source-files:
@@ -73,6 +74,8 @@ library
       , StimParser.Parse
       , StimParser.ParseUtils
       , StimParser.Trans
+      , StimParser.DEM.Expr
+      , StimParser.DEM.Parse
     
 
 executable stim-parser-unit-example
@@ -133,6 +136,8 @@ test-suite stim-parser-test
                     , Test.ParseUtils
                     , Test.Parse
                     , Test.Trans
+                    , Test.DEM.Expr
+                    , Test.DEM.Parse
     build-depends:    base                 >= 4.11.0.0 && < 4.22
                     , stim-parser
                     , HUnit              >= 1.6     && < 1.7

@@ -2,7 +2,7 @@
 module StimParser.Expr where 
 
 type Ind = Int
-type Ph = Float
+type Ph = Double
 newtype Rec = Rec Int
   deriving (Show)
 newtype Sweep = Sweep Int
@@ -140,12 +140,12 @@ errorTagTyList :: [ErrorTagTy]
 errorTagTyList = [TWO_QUBIT_LEAKAGE_NOISE_FOR_AN_ADVANCED_SIMULATOR ..] 
 
 data ErrorTag = ErrorTag ErrorTagTy
-  | ErrorTagCoef ErrorTagTy Float 
+  | ErrorTagCoef ErrorTagTy Double
   deriving (Show)
 
 data Noise = 
   NoiseNormal NoiseTy (Maybe Tag) (Maybe ErrorTag) [Ph] [Q]
-  | NoiseE NoiseTy (Maybe Tag) Float [PauliInd]
+  | NoiseE NoiseTy (Maybe Tag) Double [PauliInd]
   deriving (Show)
 
 -- General Instruction Tag (v1.15+)
@@ -174,7 +174,7 @@ annTyList = [DETECTOR ..]
 --    TICK[100ns]
 
 -- seperate Integer and Float cases
-data FInd = In Ind | Fl Float
+data FInd = In Ind | Fl Double
   deriving (Show)
 
 instance Num FInd where

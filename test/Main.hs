@@ -7,6 +7,8 @@ import qualified Test.Expr as Expr
 import qualified Test.ParseUtils as ParseUtils
 import qualified Test.Parse as Parse
 import qualified Test.Trans as Trans
+import qualified Test.DEM.Expr as DEMExpr
+import qualified Test.DEM.Parse as DEMParse
 
 main :: IO ()
 main = do
@@ -21,4 +23,6 @@ tests = TestList
   , ParseUtils.tests
   , Parse.tests
   , Trans.tests
+  , DEMExpr.tests
+  , DEMParse.tests
   ]

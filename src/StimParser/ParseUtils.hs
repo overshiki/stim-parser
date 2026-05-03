@@ -51,6 +51,9 @@ safeManyTill p end = go
   where
     go = try ([] <$ end) <|> liftA2 (:) p go
 
+parseExhaust :: Parser a -> Parser [a]
+parseExhaust parseElm = safeManyTill parseElm (notFollowedBy parseElm)
+
 manyBetween :: Parser a -> Parser a -> Parser String
 manyBetween s e = s *> safeManyTill L.charLiteral e
 
@@ -64,8 +67,35 @@ run p s = case m of
 parseInt :: Parser Int
 parseInt = lexeme $ L.signed sc L.decimal
 
-parseFloat :: Parser Float 
+parseFloat :: Parser Double
 parseFloat = lexeme $ L.signed sc L.float
+
+-- | Parse a number that may be an integer or a float.
+-- This is useful for coordinates and other contexts where integers
+-- like @0@ or @1@ should be accepted as @0.0@ or @1.0@.
+parseNumber :: Parser Double
+parseNumber = lexeme $ L.signed sc (try L.float <|> fromIntegral <$> L.decimal)
+
+parseTuple :: Parser a -> Parser [a]
+parseTuple pm = do
+  lstring "("
+  let
+    parseE = do
+      f <- pm
+      lstring ","
+      return f
+    parseTuple_ = (++) <$> parseExhaust parseE <*> ((: []) <$> pm)
+  phs <- parseTuple_
+  lstring ")"
+  return phs
+
+parseTupleFloat :: Parser [Double]
+parseTupleFloat = parseTuple parseFloat
+
+-- | Parse a tuple of numbers (integers or floats).
+-- Used for DEM coordinates where bare integers like @(0, 0)@ are common.
+parseTupleNumber :: Parser [Double]
+parseTupleNumber = parseTuple parseNumber
 
 parseVar :: Parser String
 parseVar = do
