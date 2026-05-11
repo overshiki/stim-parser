@@ -1,6 +1,7 @@
 module Test.DEM.Parse where
 
 import Test.HUnit
+import Text.Megaparsec (runParser)
 
 import StimParser.DEM.Expr
 import StimParser.DEM.Parse
@@ -27,6 +28,8 @@ tests = TestList
   , testParseDEMScientificCoords
   , testParseDEMMixedTargets
   , testParseDEMEmpty
+  , testParseDEMCaret
+  , testParseDEMEofEnforced
   ]
 
 -- | Parse individual error instructions
@@ -264,4 +267,79 @@ testParseDEMEmpty :: Test
 testParseDEMEmpty = TestList
   [ "empty string is empty dem" ~:
       DEM [] ~=? run parseDEM ""
+  ]
+
+-- | Caret (^) separator handling
+testParseDEMCaret :: Test
+testParseDEMCaret = TestList
+  [ "single caret" ~:
+      let input = "error(0.01) D0 ^ D1 L0"
+          expected = DEM [DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetDetector (DetectorId 1), TargetObservable (ObservableId 0)])]
+      in expected ~=? run parseDEM input
+
+  , "multiple carets" ~:
+      let input = "error(0.01) D0 ^ D1 ^ D2 L0"
+          expected = DEM [DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetDetector (DetectorId 1), TargetDetector (DetectorId 2), TargetObservable (ObservableId 0)])]
+      in expected ~=? run parseDEM input
+
+  , "caret with multiple lines" ~:
+      let input = "error(0.01) D0 ^ D1 L0\nerror(0.02) D2"
+          expected = DEM
+            [ DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetDetector (DetectorId 1), TargetObservable (ObservableId 0)])
+            , DEMInstrError (DEMError 0.02 [TargetDetector (DetectorId 2)])
+            ]
+      in expected ~=? run parseDEM input
+
+  , "caret only between detectors" ~:
+      let input = "error(0.01) D0 ^ D1 ^ D2"
+          expected = DEM [DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetDetector (DetectorId 1), TargetDetector (DetectorId 2)])]
+      in expected ~=? run parseDEM input
+
+  , "caret with observables interleaved" ~:
+      let input = "error(0.01) D0 ^ L0 ^ D1"
+          expected = DEM [DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetObservable (ObservableId 0), TargetDetector (DetectorId 1)])]
+      in expected ~=? run parseDEM input
+
+  , "caret at start of targets" ~:
+      let input = "error(0.01) ^ D0 D1"
+          expected = DEM [DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetDetector (DetectorId 1)])]
+      in expected ~=? run parseDEM input
+
+  , "caret at end of targets" ~:
+      let input = "error(0.01) D0 D1 ^"
+          expected = DEM [DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetDetector (DetectorId 1)])]
+      in expected ~=? run parseDEM input
+
+  , "caret between detector and observable on same line with detector after" ~:
+      let input = "error(0.01) D0 ^ D1 L0 ^ D2"
+          expected = DEM [DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetDetector (DetectorId 1), TargetObservable (ObservableId 0), TargetDetector (DetectorId 2)])]
+      in expected ~=? run parseDEM input
+  ]
+
+-- | EOF enforcement — parseDEM must consume all input
+testParseDEMEofEnforced :: Test
+testParseDEMEofEnforced = TestList
+  [ "invalid trailing text fails" ~: TestCase $ do
+      let result = runParser parseDEM "" "error(0.01) D0 invalid_trailing"
+      case result of
+        Left _ -> return ()  -- expected to fail
+        Right _ -> assertFailure "parser should fail on unconsumed input"
+
+  , "invalid token after caret fails" ~: TestCase $ do
+      let result = runParser parseDEM "" "error(0.01) D0 ^ @#$"
+      case result of
+        Left _ -> return ()  -- expected to fail
+        Right _ -> assertFailure "parser should fail on invalid token after caret"
+
+  , "partial detector id fails" ~: TestCase $ do
+      let result = runParser parseDEM "" "error(0.01) D"
+      case result of
+        Left _ -> return ()  -- expected to fail
+        Right _ -> assertFailure "parser should fail on partial detector id"
+
+  , "unclosed parenthesis fails" ~: TestCase $ do
+      let result = runParser parseDEM "" "error(0.01"
+      case result of
+        Left _ -> return ()  -- expected to fail
+        Right _ -> assertFailure "parser should fail on unclosed parenthesis"
   ]

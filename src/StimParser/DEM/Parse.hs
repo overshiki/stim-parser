@@ -9,7 +9,7 @@ import StimParser.DEM.Expr
 
 -- | Parse a complete DEM string.
 parseDEM :: Parser DEM
-parseDEM = DEM <$> many parseDEMInstruction
+parseDEM = DEM <$> many parseDEMInstruction <* eof
 
 -- | Parse a single DEM instruction.
 parseDEMInstruction :: Parser DEMInstruction
@@ -27,7 +27,7 @@ parseDEMError = do
   lstring "("
   p <- parseNumber
   lstring ")"
-  targets <- many parseDEMTarget
+  targets <- concat <$> many ((:[]) <$> parseDEMTarget <|> ([] <$ lstring "^"))
   return $ DEMError p targets
 
 -- | Parse a single target: D0 or L0
