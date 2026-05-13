@@ -114,6 +114,18 @@ testParseDEMShift = TestList
   , "shift with det offset" ~:
       DEMShift [0.0, 1.0] 10
       ~=? run parseDEMShift "shift_detectors(0, 1) 10"
+
+  , "shift bare no coords" ~:
+      DEMShift [] 96
+      ~=? run parseDEMShift "shift_detectors 96"
+
+  , "shift bare zero" ~:
+      DEMShift [] 0
+      ~=? run parseDEMShift "shift_detectors 0"
+
+  , "shift single coord no coords" ~:
+      DEMShift [0.5] 1
+      ~=? run parseDEMShift "shift_detectors(0.5) 1"
   ]
 
 -- | Parse repeat blocks

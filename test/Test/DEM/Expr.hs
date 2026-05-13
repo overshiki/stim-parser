@@ -16,6 +16,7 @@ tests = TestList
   , testFlattenDEMShiftAndRepeat
   , testFlattenDEMDetIdShift
   , testFlattenDEMDimensionMismatch
+  , testFlattenDEMBareShift
   , testFlattenDEMIdempotent
   ]
 
@@ -161,6 +162,45 @@ testFlattenDEMDimensionMismatch = TestList
             ]
           expected = DEM
             [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0, 0.0])
+            ]
+      in expected ~=? flattenDEM input
+  ]
+
+-- | shift_detectors without coordinates should preserve accumulated coords
+testFlattenDEMBareShift :: Test
+testFlattenDEMBareShift = TestList
+  [ "bare shift preserves coords" ~:
+      let input = DEM
+            [ DEMInstrShift (DEMShift [1.0, 0.5] 0)
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0])
+            , DEMInstrShift (DEMShift [] 10)
+            , DEMInstrDetector (DEMDetector (DetectorId 1) [0.0, 0.0])
+            ]
+          expected = DEM
+            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0, 0.5])
+            , DEMInstrDetector (DEMDetector (DetectorId 11) [1.0, 0.5])
+            ]
+      in expected ~=? flattenDEM input
+
+  , "bare shift only det id" ~:
+      let input = DEM
+            [ DEMInstrShift (DEMShift [] 5)
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [2.0, 3.0])
+            ]
+          expected = DEM
+            [ DEMInstrDetector (DEMDetector (DetectorId 5) [2.0, 3.0])
+            ]
+      in expected ~=? flattenDEM input
+
+  , "mixed coord and bare shifts" ~:
+      let input = DEM
+            [ DEMInstrShift (DEMShift [1.0] 0)
+            , DEMInstrShift (DEMShift [] 5)
+            , DEMInstrShift (DEMShift [2.0] 0)
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0])
+            ]
+          expected = DEM
+            [ DEMInstrDetector (DEMDetector (DetectorId 5) [3.0])
             ]
       in expected ~=? flattenDEM input
   ]

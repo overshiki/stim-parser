@@ -84,7 +84,9 @@ flattenInstrs _ _ [] = []
 flattenInstrs coordShift detShift (i : is) =
   case i of
     DEMInstrShift (DEMShift cs ds) ->
-      let newCoordShift = zipWith (+) (padCoords (length cs) coordShift) cs
+      let newCoordShift = if null cs
+                            then coordShift
+                            else zipWith (+) (padCoords (length cs) coordShift) cs
           newDetShift = detShift + ds
       in flattenInstrs newCoordShift newDetShift is
 

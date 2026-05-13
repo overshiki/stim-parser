@@ -51,11 +51,13 @@ parseDEMObservable = do
   oid <- ObservableId <$> (lstring "L" *> parseInt)
   return $ DEMObservable oid
 
--- | Parse a shift_detectors instruction: shift_detectors(1, 0) 0
+-- | Parse a shift_detectors instruction: shift_detectors(1, 0) 0 or shift_detectors 96
+--
+-- Coordinates are optional. When absent, only the detector ID is shifted.
 parseDEMShift :: Parser DEMShift
 parseDEMShift = do
   lstring "shift_detectors"
-  coords <- parseTupleNumber
+  coords <- option [] parseTupleNumber
   shift <- parseInt
   return $ DEMShift coords shift
 
