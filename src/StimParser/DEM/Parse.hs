@@ -27,7 +27,7 @@ parseDEMError = do
   lstring "("
   p <- parseNumber
   lstring ")"
-  targets <- concat <$> many ((:[]) <$> parseDEMTarget <|> ([] <$ lstring "^"))
+  targets <- many parseDEMTarget
   return $ DEMError p targets
 
 -- | Parse a single target: D0 or L0
