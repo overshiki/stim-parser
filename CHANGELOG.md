@@ -1,5 +1,15 @@
 # Revision history for stim-parser
 
+## 0.2.0.1 -- 2026-07-18
+
+* Fix noise-channel parsing order in `parseStim`.
+  Noise-channel names such as `X_ERROR`, `Y_ERROR`, `Z_ERROR`, and
+  `I_ERROR` share a prefix with gate names (`X`, `Y`, `Z`, `I`). The
+  top-level dispatcher now tries noise before gates, preventing the gate
+  parser from partially consuming these names and leaving the rest of the
+  input orphaned.
+* Add regression tests for noise-channel parsing through `parseStim`.
+
 ## 0.2.0.0 -- 2026-04-01
 
 * Add DEM (Detector Error Model) parsing support.
