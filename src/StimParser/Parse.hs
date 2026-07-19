@@ -288,10 +288,14 @@ parseStim = do
   let 
     -- the order may be tricky
     parseUnit = 
-      try (StimG <$> parseGate)
+      -- Noise must be tried before gates: noise-channel names such as
+      -- X_ERROR share a prefix with gate names (X, Y, Z, I). If the gate
+      -- parser runs first it can consume just the leading letter and succeed
+      -- with an empty target list, leaving the rest of the input orphaned.
+      try (StimNoise <$> parseNoise)
+      <|> try (StimG <$> parseGate)
       <|> try (StimM <$> parseMeasure)
       <|> try (StimGpp <$> parseGpp)
-      <|> try (StimNoise <$> parseNoise)
       <|> (StimAnn <$> parseAnn)
 
     parseUnitList = StimList <$> parseExhaust parseUnit

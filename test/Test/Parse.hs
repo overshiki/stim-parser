@@ -24,6 +24,7 @@ tests = TestList
   , testParseAnnTy
   , testParseFInd
   , testParseAnn
+  , testParseStimNoiseOrder
   ]
 
 -- Helper to compare using show (since types don't derive Eq)
@@ -270,4 +271,33 @@ testParseAnn = TestList
   , assertShowEqual "parseAnn OBSERVABLE_INCLUDE" 
       (Ann OBSERVABLE_INCLUDE Nothing [In 0] [QRec (Rec (-1))]) 
       (run parseAnn "OBSERVABLE_INCLUDE(0) rec[-1]")
+  ]
+
+-- | Regression test for the noise-before-gate ordering bug.
+-- Noise-channel names such as X_ERROR share a prefix with gate names (X, Y,
+-- Z, I). The top-level 'parseStim' dispatcher must try noise first, otherwise
+-- the gate parser consumes the leading letter and succeeds with an empty
+-- target list, leaving the rest of the line unparsed.
+testParseStimNoiseOrder :: Test
+testParseStimNoiseOrder = TestList
+  [ assertShowEqual "parseStim X_ERROR"
+      (StimList [StimNoise (NoiseNormal X_ERROR Nothing Nothing [0.5] [Q 0])])
+      (run parseStim "!!!Start\nX_ERROR(0.5) 0\n")
+
+  , assertShowEqual "parseStim Y_ERROR"
+      (StimList [StimNoise (NoiseNormal Y_ERROR Nothing Nothing [0.01] [Q 1])])
+      (run parseStim "!!!Start\nY_ERROR(0.01) 1\n")
+
+  , assertShowEqual "parseStim Z_ERROR"
+      (StimList [StimNoise (NoiseNormal Z_ERROR Nothing Nothing [0.02] [Q 2])])
+      (run parseStim "!!!Start\nZ_ERROR(0.02) 2\n")
+
+  , assertShowEqual "parseStim I_ERROR"
+      (StimList [StimNoise (NoiseNormal I_ERROR Nothing Nothing [0.1] [Q 0])])
+      (run parseStim "!!!Start\nI_ERROR(0.1) 0\n")
+
+  -- Sanity check: ordinary gate lines still work after the reordering.
+  , assertShowEqual "parseStim H gate"
+      (StimList [StimG (Gate H Nothing [Q 0, Q 1, Q 2])])
+      (run parseStim "!!!Start\nH 0 1 2\n")
   ]
