@@ -1,5 +1,19 @@
 # Revision history for stim-parser
 
+## 0.3.0.0 -- 2026-07-20
+
+* Add optional tag support for DEM detector and observable declarations.
+  Stim's DEM format allows `detector[tag](...) D#` and
+  `logical_observable[tag] L#`; these are now parsed and exposed in the AST.
+  This is a **breaking API change**: `DEMDetector` and `DEMObservable`
+  gained new `ddTag` / `doTag` fields of type `Maybe Tag`.
+* Move `parseTag` from `StimParser.Parse` to `StimParser.ParseUtils` so it
+  can be shared by the DEM parser. Modules importing `parseTag` from
+  `StimParser.Parse` should import it from `StimParser.ParseUtils` instead.
+* Add `Eq` instance for `StimParser.Expr.Tag`.
+* Add DEM parser regression tests for tagged detectors/observables and
+  rejection of double tags.
+
 ## 0.2.0.1 -- 2026-07-18
 
 * Fix noise-channel parsing order in `parseStim`.
