@@ -6,6 +6,7 @@ import StimParser.Expr
 import StimParser.ParseUtils
 import Control.Monad
 import Data.List
+import Data.Maybe
 import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -241,35 +242,60 @@ parseFInd = do
   -- the order is tricky 
   try pm2 <|> pm1
 
+-- | Parse a measurement-record target inside an annotation.
+-- Requires a negative index, matching the semantics of rec[] in gates.
+parseAnnRecTarget :: Parser AnnTarget
+parseAnnRecTarget = do
+  lstring "rec"
+  lstring "["
+  i <- parseInt
+  lstring "]"
+  if i < 0
+    then return $ AnnRec (Rec i)
+    else fail "rec[] index in annotations must be negative (e.g., rec[-1])"
+
+-- | Parse a single-qubit Pauli target inside an annotation.
+-- The '*' combiner is intentionally not supported here.
+parseAnnPauliTarget :: Parser AnnTarget
+parseAnnPauliTarget = lexeme $ do
+  PauliInd p i <- parsePauliInd
+  return $ AnnPauli p i
+
+-- | Parse a target that may appear inside DETECTOR or OBSERVABLE_INCLUDE:
+-- either a measurement-record reference or a single-qubit Pauli target.
+parseAnnTargetMixed :: Parser AnnTarget
+parseAnnTargetMixed =
+  try parseAnnRecTarget <|> parseAnnPauliTarget
+
+-- | Parse a plain qubit-index target for annotations such as QUBIT_COORDS.
+parseAnnTargetQ :: Parser AnnTarget
+parseAnnTargetQ = AnnQ <$> parseInt
+
 parseAnn :: Parser Ann 
-parseAnn = do 
-  let 
-    -- parser for case: DETECTOR[tag](1, 0) rec[-3] rec[-6]
-    pm1 = do 
-      ty <- parseAnnTy 
-      tag <- optional parseTag
+parseAnn = do
+  ty <- parseAnnTy
+  tag <- optional parseTag
+  case ty of
+    TICK ->
+      return $ Ann TICK tag [] []
+    SHIFT_COORDS -> do
       fds <- parseTuple parseFInd
-      qs <- parseExhaust parseQ
-      return $ Ann ty tag fds qs
-    -- parser for case: DETECTOR[tag] rec[-3] rec[-4] rec[-7]
-    pm2 = do 
-      ty <- parseAnnTy
-      tag <- optional parseTag
-      qs <- parseExhaust parseQ
-      return $ Ann ty tag [] qs
-    -- parser for case: SHIFT_COORDS[tag](500.5)
-    pm3 = do 
-      ty <- parseAnnTy
-      tag <- optional parseTag
+      return $ Ann SHIFT_COORDS tag fds []
+    QUBIT_COORDS -> do
       fds <- parseTuple parseFInd
-      return $ Ann ty tag fds []
-    -- parser for case: TICK[tag]
-    pm4 = do
-      ty <- parseShowCI TICK
-      tag <- optional parseTag
-      return $ Ann ty tag [] []
-  -- the order is tricky
-  try pm1 <|> try pm2 <|> try pm3 <|> pm4 
+      qs <- parseExhaust parseAnnTargetQ
+      return $ Ann QUBIT_COORDS tag fds qs
+    MPAD -> do
+      qs <- parseExhaust parseAnnTargetQ
+      return $ Ann MPAD tag [] qs
+    DETECTOR -> do
+      mfds <- optional (parseTuple parseFInd)
+      ts <- parseExhaust parseAnnTargetMixed
+      return $ Ann DETECTOR tag (fromMaybe [] mfds) ts
+    OBSERVABLE_INCLUDE -> do
+      fds <- parseTuple parseFInd
+      ts <- parseExhaust parseAnnTargetMixed
+      return $ Ann OBSERVABLE_INCLUDE tag fds ts
 
 parseStart :: Parser ()
 parseStart = void (lstring "!!!Start") 

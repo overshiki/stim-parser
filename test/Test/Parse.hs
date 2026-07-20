@@ -260,17 +260,26 @@ testParseAnn = TestList
   [ assertShowEqual "parseAnn TICK" 
       (Ann TICK Nothing [] []) (run parseAnn "TICK")
   , assertShowEqual "parseAnn DETECTOR with coords and rec" 
-      (Ann DETECTOR Nothing [In 1, In 0] [QRec (Rec (-3)), QRec (Rec (-6))]) 
+      (Ann DETECTOR Nothing [In 1, In 0] [AnnRec (Rec (-3)), AnnRec (Rec (-6))]) 
       (run parseAnn "DETECTOR(1, 0) rec[-3] rec[-6]")
   , assertShowEqual "parseAnn DETECTOR without coords" 
-      (Ann DETECTOR Nothing [] [QRec (Rec (-3)), QRec (Rec (-4))]) 
+      (Ann DETECTOR Nothing [] [AnnRec (Rec (-3)), AnnRec (Rec (-4))]) 
       (run parseAnn "DETECTOR rec[-3] rec[-4]")
   , assertShowEqual "parseAnn SHIFT_COORDS" 
       (Ann SHIFT_COORDS Nothing [Fl 500.5] []) 
       (run parseAnn "SHIFT_COORDS(500.5)")
   , assertShowEqual "parseAnn OBSERVABLE_INCLUDE" 
-      (Ann OBSERVABLE_INCLUDE Nothing [In 0] [QRec (Rec (-1))]) 
+      (Ann OBSERVABLE_INCLUDE Nothing [In 0] [AnnRec (Rec (-1))]) 
       (run parseAnn "OBSERVABLE_INCLUDE(0) rec[-1]")
+  , assertShowEqual "parseAnn DETECTOR with Pauli targets" 
+      (Ann DETECTOR Nothing [] [AnnPauli PX 0, AnnPauli PZ 1]) 
+      (run parseAnn "DETECTOR X0 Z1")
+  , assertShowEqual "parseAnn OBSERVABLE_INCLUDE with Pauli targets" 
+      (Ann OBSERVABLE_INCLUDE Nothing [In 0] [AnnPauli PX 0, AnnPauli PZ 1]) 
+      (run parseAnn "OBSERVABLE_INCLUDE(0) X0 Z1")
+  , assertShowEqual "parseAnn OBSERVABLE_INCLUDE mixed targets" 
+      (Ann OBSERVABLE_INCLUDE Nothing [In 0] [AnnRec (Rec (-1)), AnnPauli PZ 0]) 
+      (run parseAnn "OBSERVABLE_INCLUDE(0) rec[-1] Z0")
   ]
 
 -- | Regression test for the noise-before-gate ordering bug.

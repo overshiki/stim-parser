@@ -4,7 +4,7 @@ module StimParser.Expr where
 type Ind = Int
 type Ph = Double
 newtype Rec = Rec Int
-  deriving (Show)
+  deriving (Show, Eq, Ord)
 newtype Sweep = Sweep Int
   deriving (Show)
 
@@ -17,7 +17,7 @@ data Q = Q Int | QRec Rec | QSweep Sweep | Not Int
   deriving (Show)
 
 data Pauli = PX | PY | PZ 
-  deriving (Show)
+  deriving (Show, Eq, Ord)
 data PauliInd = PauliInd Pauli Ind
   deriving (Show)
 
@@ -161,11 +161,29 @@ data AnnTy =
 annTyList :: [AnnTy]
 annTyList = [DETECTOR ..] 
 
+-- Targets that can appear inside annotations.
+--
+-- * 'AnnQ' is a plain qubit index (used by QUBIT_COORDS and MPAD).
+-- * 'AnnRec' is a measurement-record reference (used by DETECTOR and
+--   OBSERVABLE_INCLUDE).
+-- * 'AnnPauli' is a single-qubit Pauli operator (used by DETECTOR and
+--   OBSERVABLE_INCLUDE to declare Pauli-product detectors/observables).
+--
+-- Space-separated Pauli targets are implicitly multiplied, matching Python
+-- Stim behavior. The '*' combiner is not supported inside annotations.
+data AnnTarget
+  = AnnQ Ind
+  | AnnRec Rec
+  | AnnPauli Pauli Ind
+  deriving (Show, Eq)
+
 -- Annotations examples:
 --    DETECTOR(1, 0) rec[-3] rec[-6]
 --    DETECTOR(2, 0, 0) rec[-8]
 --    DETECTOR rec[-3] rec[-4] rec[-7]
+--    DETECTOR X0 Z1
 --    OBSERVABLE_INCLUDE(0) rec[-1] rec[-2]
+--    OBSERVABLE_INCLUDE(0) X0 Z1
 --    QUBIT_COORDS(0, 0) 0
 --    MPAD 0 0 1 0 1
 --    SHIFT_COORDS(500.5)
@@ -193,7 +211,7 @@ instance Num FInd where
 
 newtype Coords = Coords [FInd]
 
-data Ann = Ann AnnTy (Maybe Tag) [FInd] [Q]
+data Ann = Ann AnnTy (Maybe Tag) [FInd] [AnnTarget]
   deriving (Show)
 
 -- repeat example:

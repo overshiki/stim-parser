@@ -83,8 +83,11 @@ testFlattenQAnn = TestList
   [ assertShowEqual "flattenQ Ann TICK" 
       (Just (Ann TICK Nothing [] [])) (evalState (flattenQ (Ann TICK Nothing [] [])) (0, Coords [In 0]))
   , assertShowEqual "flattenQ Ann DETECTOR" 
-      (Just (Ann DETECTOR Nothing [In 1, In 0] [Q 10])) 
-      (evalState (flattenQ (Ann DETECTOR Nothing [In 1, In 0] [Q 10])) (10, Coords [In 0, In 0]))
+      (Just (Ann DETECTOR Nothing [In 1, In 0] [AnnQ 10])) 
+      (evalState (flattenQ (Ann DETECTOR Nothing [In 1, In 0] [AnnQ 10])) (10, Coords [In 0, In 0]))
+  , assertShowEqual "flattenQ Ann OBSERVABLE_INCLUDE resolves rec" 
+      (Just (Ann OBSERVABLE_INCLUDE Nothing [In 0] [AnnQ 10, AnnPauli PZ 0])) 
+      (evalState (flattenQ (Ann OBSERVABLE_INCLUDE Nothing [In 0] [AnnRec (Rec (-1)), AnnPauli PZ 0])) (10, Coords [In 0]))
   ]
   -- Note: SHIFT_COORDS test moved to separate test case
 

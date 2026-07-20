@@ -37,6 +37,17 @@ instance FlattenQ Gate where
     nqs <- mapM flattenQ qs 
     return $ Gate gt tag nqs 
 
+-- Annotation targets behave similarly to 'Q': plain qubits and Pauli targets
+-- are preserved, while measurement-record references are resolved to absolute
+-- qubit indices using the current measurement count.
+instance FlattenQ AnnTarget where
+  type Out AnnTarget = AnnTarget
+  flattenQ (AnnQ i) = return (AnnQ i)
+  flattenQ (AnnRec (Rec r)) = do
+    (count, _) <- get
+    return $ AnnQ (count + r + 1)
+  flattenQ (AnnPauli p i) = return (AnnPauli p i)
+
 -- for each measure, we increase the count by 1
 -- currently, we assume measure does not contains (QRec Rec)
 instance FlattenQ Measure where
@@ -74,15 +85,15 @@ instance FlattenQ Ann where
 
   -- TODO: type-level constraint that fs and cs should be of the same length
   -- TODO: type-level constraint that count should not be used in this case
-  flattenQ (Ann DETECTOR tag fs qs) = do
+  flattenQ (Ann DETECTOR tag fs ts) = do
     (count, Coords cs) <- get
     let nfs = zipWith (+) fs cs
-    nqs <- mapM flattenQ qs
-    return $ Just $ Ann DETECTOR tag nfs nqs
+    nts <- mapM flattenQ ts
+    return $ Just $ Ann DETECTOR tag nfs nts
     
-  flattenQ (Ann aty tag fs qs) = do 
-    nqs <- mapM flattenQ qs 
-    return $ Just $ Ann aty tag fs nqs
+  flattenQ (Ann aty tag fs ts) = do 
+    nts <- mapM flattenQ ts 
+    return $ Just $ Ann aty tag fs nts
 
 instance FlattenQ Stim where
   type Out Stim = Maybe Stim
