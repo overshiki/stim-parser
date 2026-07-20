@@ -88,15 +88,6 @@ parseEnum :: (Show a) => [a] -> Parser a
 parseEnum [] = error "value error"
 parseEnum xs = msum $ map parseShowCI $ sortOn (negate . length . show) xs
 
--- | Parse an optional tag: [tag_content]
--- Tag content can be any character except ], \r, \n
-parseTag :: Parser Tag
-parseTag = do
-  lstring "["
-  content <- many $ satisfy (\c -> c /= ']' && c /= '\r' && c /= '\n')
-  lstring "]"
-  return $ Tag content
-
 parseGateTy :: Parser GateTy
 parseGateTy = parseEnum gateTyList
 

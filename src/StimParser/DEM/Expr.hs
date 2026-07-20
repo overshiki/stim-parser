@@ -1,6 +1,8 @@
 {-# LANGUAGE InstanceSigs #-}
 module StimParser.DEM.Expr where
 
+import StimParser.Expr (Tag)
+
 -- | A detector index (check node in the bipartite graph).
 newtype DetectorId = DetectorId { unDetectorId :: Int }
   deriving (Show, Eq, Ord)
@@ -30,11 +32,13 @@ data DEMError = DEMError
 data DEMDetector = DEMDetector
     { ddId     :: !DetectorId
     , ddCoords :: ![Double]
+    , ddTag    :: !(Maybe Tag)
     } deriving (Show, Eq)
 
 -- | A logical observable declaration: logical_observable L0
 data DEMObservable = DEMObservable
-    { doId :: !ObservableId
+    { doId  :: !ObservableId
+    , doTag :: !(Maybe Tag)
     } deriving (Show, Eq)
 
 -- | Shift detectors instruction: shift_detectors(1, 0) 0
@@ -93,11 +97,11 @@ flattenInstrs coordShift detShift (i : is) =
     DEMInstrRepeat n body ->
       flattenInstrs coordShift detShift (concat (replicate n body) ++ is)
 
-    DEMInstrDetector (DEMDetector (DetectorId did) coords) ->
+    DEMInstrDetector (DEMDetector (DetectorId did) coords tag) ->
       let shiftPadded = padCoords (length coords) coordShift
           shiftedCoords = zipWith (+) shiftPadded coords
           shiftedId = DetectorId (did + detShift)
-      in DEMInstrDetector (DEMDetector shiftedId shiftedCoords) : flattenInstrs coordShift detShift is
+      in DEMInstrDetector (DEMDetector shiftedId shiftedCoords tag) : flattenInstrs coordShift detShift is
 
     DEMInstrError err ->
       DEMInstrError err : flattenInstrs coordShift detShift is

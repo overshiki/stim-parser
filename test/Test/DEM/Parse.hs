@@ -3,6 +3,7 @@ module Test.DEM.Parse where
 import Test.HUnit
 import Text.Megaparsec (runParser)
 
+import StimParser.Expr (Tag (..))
 import StimParser.DEM.Expr
 import StimParser.DEM.Parse
 import StimParser.ParseUtils (run)
@@ -30,6 +31,7 @@ tests = TestList
   , testParseDEMEmpty
   , testParseDEMCaret
   , testParseDEMEofEnforced
+  , testParseDEMTagged
   ]
 
 -- | Parse individual error instructions
@@ -76,19 +78,19 @@ testParseDEMError = TestList
 testParseDEMDetector :: Test
 testParseDEMDetector = TestList
   [ "detector 2D" ~:
-      DEMDetector (DetectorId 0) [0.0, 0.0]
+      DEMDetector (DetectorId 0) [0.0, 0.0] Nothing
       ~=? run parseDEMDetector "detector(0, 0) D0"
 
   , "detector 3D" ~:
-      DEMDetector (DetectorId 5) [1.0, 2.0, 0.0]
+      DEMDetector (DetectorId 5) [1.0, 2.0, 0.0] Nothing
       ~=? run parseDEMDetector "detector(1, 2, 0) D5"
 
   , "detector negative coords" ~:
-      DEMDetector (DetectorId 1) [-1.0, 0.5]
+      DEMDetector (DetectorId 1) [-1.0, 0.5] Nothing
       ~=? run parseDEMDetector "detector(-1, 0.5) D1"
 
   , "detector 1D" ~:
-      DEMDetector (DetectorId 3) [2.0]
+      DEMDetector (DetectorId 3) [2.0] Nothing
       ~=? run parseDEMDetector "detector(2) D3"
   ]
 
@@ -96,11 +98,11 @@ testParseDEMDetector = TestList
 testParseDEMObservable :: Test
 testParseDEMObservable = TestList
   [ "observable L0" ~:
-      DEMObservable (ObservableId 0)
+      DEMObservable (ObservableId 0) Nothing
       ~=? run parseDEMObservable "logical_observable L0"
 
   , "observable L5" ~:
-      DEMObservable (ObservableId 5)
+      DEMObservable (ObservableId 5) Nothing
       ~=? run parseDEMObservable "logical_observable L5"
   ]
 
@@ -167,8 +169,8 @@ testParseDEMFull = TestList
           expected = DEM
             [ DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetDetector (DetectorId 1), TargetObservable (ObservableId 0)])
             , DEMInstrError (DEMError 0.005 [TargetDetector (DetectorId 1), TargetDetector (DetectorId 2)])
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0])
-            , DEMInstrObservable (DEMObservable (ObservableId 0))
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0] Nothing)
+            , DEMInstrObservable (DEMObservable (ObservableId 0) Nothing)
             ]
       in expected ~=? run parseDEM input
 
@@ -176,7 +178,7 @@ testParseDEMFull = TestList
       let input = "repeat 2 { error(0.01) D0 } detector(0, 0) D0"
           expected = DEM
             [ DEMInstrRepeat 2 [DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0)])]
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0])
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0] Nothing)
             ]
       in expected ~=? run parseDEM input
 
@@ -207,7 +209,7 @@ testParseDEMWhitespace = TestList
       ~=? run parseDEMError "error( 0.01 ) D0"
 
   , "detector with tabs" ~:
-      DEMDetector (DetectorId 0) [1.0, 2.0]
+      DEMDetector (DetectorId 0) [1.0, 2.0] Nothing
       ~=? run parseDEMDetector "detector(1,\t2)\tD0"
   ]
 
@@ -246,7 +248,7 @@ testParseDEMComments = TestList
       ~=? run parseDEMError "error(0.01) D0 # end of line comment"
 
   , "block comment in tuple" ~:
-      DEMDetector (DetectorId 0) [1.0, 2.0]
+      DEMDetector (DetectorId 0) [1.0, 2.0] Nothing
       ~=? run parseDEMDetector "detector(1, (* x *) 2) D0"
   ]
 
@@ -254,11 +256,11 @@ testParseDEMComments = TestList
 testParseDEMScientificCoords :: Test
 testParseDEMScientificCoords = TestList
   [ "scientific notation in detector coords" ~:
-      DEMDetector (DetectorId 0) [150.0, 0.0]
+      DEMDetector (DetectorId 0) [150.0, 0.0] Nothing
       ~=? run parseDEMDetector "detector(1.5e2, 0) D0"
 
   , "negative scientific in coords" ~:
-      DEMDetector (DetectorId 1) [-1.5e-2, 2.0]
+      DEMDetector (DetectorId 1) [-1.5e-2, 2.0] Nothing
       ~=? run parseDEMDetector "detector(-1.5e-2, 2) D1"
   ]
 
@@ -353,4 +355,50 @@ testParseDEMEofEnforced = TestList
       case result of
         Left _ -> return ()  -- expected to fail
         Right _ -> assertFailure "parser should fail on unclosed parenthesis"
+  ]
+
+
+-- | Tagged detectors and observables (Stim v1.15+).
+testParseDEMTagged :: Test
+testParseDEMTagged = TestList
+  [ "tagged detector" ~:
+      DEMDetector (DetectorId 1) [1.0, 0.0] (Just (Tag "choi"))
+      ~=? run parseDEMDetector "detector[choi](1, 0) D1"
+
+  , "tagged observable" ~:
+      DEMObservable (ObservableId 0) (Just (Tag "choi"))
+      ~=? run parseDEMObservable "logical_observable[choi] L0"
+
+  , "untagged detector still parses" ~:
+      DEMDetector (DetectorId 0) [0.0, 0.0] Nothing
+      ~=? run parseDEMDetector "detector(0, 0) D0"
+
+  , "untagged observable still parses" ~:
+      DEMObservable (ObservableId 5) Nothing
+      ~=? run parseDEMObservable "logical_observable L5"
+
+  , "tagged detector in full DEM" ~:
+      let input = unlines
+            [ "error(0.01) D0"
+            , "detector[choi](1, 0) D1"
+            , "logical_observable[choi] L0"
+            ]
+          expected = DEM
+            [ DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0)])
+            , DEMInstrDetector (DEMDetector (DetectorId 1) [1.0, 0.0] (Just (Tag "choi")))
+            , DEMInstrObservable (DEMObservable (ObservableId 0) (Just (Tag "choi")))
+            ]
+      in expected ~=? run parseDEM input
+
+  , "double tag on detector rejected" ~: TestCase $ do
+      let result = runParser parseDEM "" "detector[t1][t2](0, 0) D0"
+      case result of
+        Left _ -> return ()
+        Right _ -> assertFailure "double tags should be rejected"
+
+  , "double tag on observable rejected" ~: TestCase $ do
+      let result = runParser parseDEM "" "logical_observable[t1][t2] L0"
+      case result of
+        Left _ -> return ()
+        Right _ -> assertFailure "double tags should be rejected"
   ]

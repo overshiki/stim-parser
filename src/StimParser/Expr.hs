@@ -151,7 +151,7 @@ data Noise =
 -- General Instruction Tag (v1.15+)
 -- Examples: TICK[100ns], X_ERROR[custom](0.1) 0
 newtype Tag = Tag String
-  deriving (Show)
+  deriving (Show, Eq)
 
 -- Annotations 
 data AnnTy = 

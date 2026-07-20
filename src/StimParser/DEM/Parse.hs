@@ -2,9 +2,10 @@
 module StimParser.DEM.Parse where
 
 import Text.Megaparsec
-import Text.Megaparsec.Char
+import Text.Megaparsec.Char ()
 
 import StimParser.ParseUtils
+import StimParser.Expr (Tag)
 import StimParser.DEM.Expr
 
 -- | Parse a complete DEM string.
@@ -40,16 +41,18 @@ parseDEMTarget =
 parseDEMDetector :: Parser DEMDetector
 parseDEMDetector = do
   lstring "detector"
+  tag <- optional parseTag :: Parser (Maybe Tag)
   coords <- parseTupleNumber
   did <- DetectorId <$> (lstring "D" *> parseInt)
-  return $ DEMDetector did coords
+  return $ DEMDetector did coords tag
 
 -- | Parse a logical observable declaration: logical_observable L0
 parseDEMObservable :: Parser DEMObservable
 parseDEMObservable = do
   lstring "logical_observable"
+  tag <- optional parseTag :: Parser (Maybe Tag)
   oid <- ObservableId <$> (lstring "L" *> parseInt)
-  return $ DEMObservable oid
+  return $ DEMObservable oid tag
 
 -- | Parse a shift_detectors instruction: shift_detectors(1, 0) 0 or shift_detectors 96
 --

@@ -31,8 +31,8 @@ testFlattenDEMSimple = TestList
       let dem = DEM
             [ DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0)])
             , DEMInstrError (DEMError 0.02 [TargetDetector (DetectorId 1), TargetObservable (ObservableId 0)])
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0])
-            , DEMInstrObservable (DEMObservable (ObservableId 0))
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0] Nothing)
+            , DEMInstrObservable (DEMObservable (ObservableId 0) Nothing)
             ]
       in dem ~=? flattenDEM dem
   ]
@@ -73,25 +73,25 @@ testFlattenDEMShift = TestList
   [ "flatten shift detectors" ~:
       let input = DEM
             [ DEMInstrShift (DEMShift [1.0, 0.0] 0)
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0])
-            , DEMInstrDetector (DEMDetector (DetectorId 1) [2.0, 3.0])
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0] Nothing)
+            , DEMInstrDetector (DEMDetector (DetectorId 1) [2.0, 3.0] Nothing)
             ]
           expected = DEM
-            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0, 0.0])
-            , DEMInstrDetector (DEMDetector (DetectorId 1) [3.0, 3.0])
+            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0, 0.0] Nothing)
+            , DEMInstrDetector (DEMDetector (DetectorId 1) [3.0, 3.0] Nothing)
             ]
       in expected ~=? flattenDEM input
 
   , "flatten cumulative shift" ~:
       let input = DEM
             [ DEMInstrShift (DEMShift [1.0] 0)
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0])
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0] Nothing)
             , DEMInstrShift (DEMShift [2.0] 0)
-            , DEMInstrDetector (DEMDetector (DetectorId 1) [0.0])
+            , DEMInstrDetector (DEMDetector (DetectorId 1) [0.0] Nothing)
             ]
           expected = DEM
-            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0])
-            , DEMInstrDetector (DEMDetector (DetectorId 1) [3.0])
+            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0] Nothing)
+            , DEMInstrDetector (DEMDetector (DetectorId 1) [3.0] Nothing)
             ]
       in expected ~=? flattenDEM input
   ]
@@ -103,15 +103,15 @@ testFlattenDEMShiftAndRepeat = TestList
       let input = DEM
             [ DEMInstrRepeat 2
                 [ DEMInstrShift (DEMShift [1.0] 0)
-                , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0])
+                , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0] Nothing)
                 ]
             ]
           -- Note: shifts are cumulative across repeat iterations.
           -- Iteration 1: shift=[1.0], detector gets [1.0]
           -- Iteration 2: shift becomes [2.0], detector gets [2.0]
           expected = DEM
-            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0])
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [2.0])
+            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0] Nothing)
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [2.0] Nothing)
             ]
       in expected ~=? flattenDEM input
   ]
@@ -122,22 +122,22 @@ testFlattenDEMDetIdShift = TestList
   [ "flatten detector id shift" ~:
       let input = DEM
             [ DEMInstrShift (DEMShift [0.0] 5)
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [1.0])
-            , DEMInstrDetector (DEMDetector (DetectorId 1) [2.0])
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [1.0] Nothing)
+            , DEMInstrDetector (DEMDetector (DetectorId 1) [2.0] Nothing)
             ]
           expected = DEM
-            [ DEMInstrDetector (DEMDetector (DetectorId 5) [1.0])
-            , DEMInstrDetector (DEMDetector (DetectorId 6) [2.0])
+            [ DEMInstrDetector (DEMDetector (DetectorId 5) [1.0] Nothing)
+            , DEMInstrDetector (DEMDetector (DetectorId 6) [2.0] Nothing)
             ]
       in expected ~=? flattenDEM input
 
   , "flatten combined coord and id shift" ~:
       let input = DEM
             [ DEMInstrShift (DEMShift [1.0, 0.0] 10)
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0])
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0] Nothing)
             ]
           expected = DEM
-            [ DEMInstrDetector (DEMDetector (DetectorId 10) [1.0, 0.0])
+            [ DEMInstrDetector (DEMDetector (DetectorId 10) [1.0, 0.0] Nothing)
             ]
       in expected ~=? flattenDEM input
   ]
@@ -148,20 +148,20 @@ testFlattenDEMDimensionMismatch = TestList
   [ "2D shift on 3D detector" ~:
       let input = DEM
             [ DEMInstrShift (DEMShift [1.0, 0.0] 0)
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0, 0.0])
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0, 0.0] Nothing)
             ]
           expected = DEM
-            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0, 0.0, 0.0])
+            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0, 0.0, 0.0] Nothing)
             ]
       in expected ~=? flattenDEM input
 
   , "3D shift on 2D detector" ~:
       let input = DEM
             [ DEMInstrShift (DEMShift [1.0, 0.0, 0.0] 0)
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0])
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0] Nothing)
             ]
           expected = DEM
-            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0, 0.0])
+            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0, 0.0] Nothing)
             ]
       in expected ~=? flattenDEM input
   ]
@@ -172,23 +172,23 @@ testFlattenDEMBareShift = TestList
   [ "bare shift preserves coords" ~:
       let input = DEM
             [ DEMInstrShift (DEMShift [1.0, 0.5] 0)
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0])
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0, 0.0] Nothing)
             , DEMInstrShift (DEMShift [] 10)
-            , DEMInstrDetector (DEMDetector (DetectorId 1) [0.0, 0.0])
+            , DEMInstrDetector (DEMDetector (DetectorId 1) [0.0, 0.0] Nothing)
             ]
           expected = DEM
-            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0, 0.5])
-            , DEMInstrDetector (DEMDetector (DetectorId 11) [1.0, 0.5])
+            [ DEMInstrDetector (DEMDetector (DetectorId 0) [1.0, 0.5] Nothing)
+            , DEMInstrDetector (DEMDetector (DetectorId 11) [1.0, 0.5] Nothing)
             ]
       in expected ~=? flattenDEM input
 
   , "bare shift only det id" ~:
       let input = DEM
             [ DEMInstrShift (DEMShift [] 5)
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [2.0, 3.0])
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [2.0, 3.0] Nothing)
             ]
           expected = DEM
-            [ DEMInstrDetector (DEMDetector (DetectorId 5) [2.0, 3.0])
+            [ DEMInstrDetector (DEMDetector (DetectorId 5) [2.0, 3.0] Nothing)
             ]
       in expected ~=? flattenDEM input
 
@@ -197,10 +197,10 @@ testFlattenDEMBareShift = TestList
             [ DEMInstrShift (DEMShift [1.0] 0)
             , DEMInstrShift (DEMShift [] 5)
             , DEMInstrShift (DEMShift [2.0] 0)
-            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0])
+            , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0] Nothing)
             ]
           expected = DEM
-            [ DEMInstrDetector (DEMDetector (DetectorId 5) [3.0])
+            [ DEMInstrDetector (DEMDetector (DetectorId 5) [3.0] Nothing)
             ]
       in expected ~=? flattenDEM input
   ]
@@ -211,8 +211,8 @@ testFlattenDEMIdempotent = TestList
   [ "flatten is idempotent on simple" ~:
       let dem = DEM
             [ DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0)])
-            , DEMInstrDetector (DEMDetector (DetectorId 1) [1.0, 2.0])
-            , DEMInstrObservable (DEMObservable (ObservableId 0))
+            , DEMInstrDetector (DEMDetector (DetectorId 1) [1.0, 2.0] Nothing)
+            , DEMInstrObservable (DEMObservable (ObservableId 0) Nothing)
             ]
       in flattenDEM dem ~=? flattenDEM (flattenDEM dem)
 
@@ -220,7 +220,7 @@ testFlattenDEMIdempotent = TestList
       let dem = DEM
             [ DEMInstrRepeat 2
                 [ DEMInstrShift (DEMShift [1.0] 0)
-                , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0])
+                , DEMInstrDetector (DEMDetector (DetectorId 0) [0.0] Nothing)
                 ]
             ]
       in flattenDEM dem ~=? flattenDEM (flattenDEM dem)

@@ -17,6 +17,8 @@ import qualified Data.Set as Set
 import Data.Maybe
 import Data.Char (toLower)
 
+import StimParser.Expr (Tag (..))
+
 type Parser = Parsec Void String
 -- type Parser = ParsecT Void String (State Env)
 
@@ -100,6 +102,18 @@ parseTupleNumber = parseTuple parseNumber
 parseVar :: Parser String
 parseVar = do
   lexeme $ safeManyTill L.charLiteral (lookAhead (try space1 <|> eof))
+
+-- | Parse an optional tag: [tag_content]
+-- Tag content can be any character except ], \r, \n
+tagContentForbidden :: Char -> Bool
+tagContentForbidden c = c == ']' || c == '\r' || c == '\n'
+
+parseTag :: Parser Tag
+parseTag = do
+  lstring "["
+  content <- Text.Megaparsec.many $ satisfy (not . tagContentForbidden)
+  lstring "]"
+  return $ Tag content
 
 excludePredict :: Parser a -> Parser ()
 excludePredict p = lookAhead $ notFollowedBy p
