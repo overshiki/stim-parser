@@ -1,5 +1,18 @@
 # Revision history for stim-parser
 
+## 0.4.0.0 -- 2026-07-20
+
+* Add Pauli-target support for `OBSERVABLE_INCLUDE` and `DETECTOR`
+  annotations.
+  - New `AnnTarget` sum type: `AnnQ Ind | AnnRec Rec | AnnPauli Pauli Ind`.
+  - `Ann` now stores `[AnnTarget]` instead of `[Q]`.
+  - Single-qubit Pauli targets such as `X0`, `Y1`, `Z2` are accepted and
+    preserved, matching Python Stim behavior.
+  - Mixed `rec[-k]` and Pauli targets are supported.
+  - The `*` combiner remains unsupported inside annotations.
+* This is a **breaking API change**. Downstream code pattern-matching on
+  `Ann` or constructing annotation values needs to use `AnnTarget`.
+
 ## 0.3.0.0 -- 2026-07-20
 
 * Add optional tag support for DEM detector and observable declarations.
