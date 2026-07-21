@@ -1,5 +1,18 @@
 # Revision history for stim-parser
 
+## 0.4.1.0 -- 2026-07-20
+
+* Parse DEM separator targets (`^`) inside `error(...)` instructions.
+  Added `TargetSeparator` constructor to `DEMTarget`. This is a non-breaking
+  API addition; downstream code pattern-matching on `DEMTarget` should add a
+  wildcard or handle the new constructor.
+* Require at least one target for gate and measurement instructions.
+  `parseGate` and `parseMeasure` now use `some parseQ` instead of
+  `parseExhaust parseQ`. This prevents single-letter gate/measure names such
+  as `R`, `S`, `H`, `I`, and `M` from consuming the leading character of
+  keywords like `REPEAT` and `SHIFT_COORDS` and producing misleading parse
+  errors.
+
 ## 0.4.0.0 -- 2026-07-20
 
 * Add Pauli-target support for `OBSERVABLE_INCLUDE` and `DETECTOR`
