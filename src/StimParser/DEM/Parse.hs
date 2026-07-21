@@ -31,11 +31,12 @@ parseDEMError = do
   targets <- many parseDEMTarget
   return $ DEMError p targets
 
--- | Parse a single target: D0 or L0
+-- | Parse a single target: D0, L0, or ^
 parseDEMTarget :: Parser DEMTarget
 parseDEMTarget =
       TargetDetector   . DetectorId   <$> (lstring "D" *> parseInt)
   <|> TargetObservable . ObservableId <$> (lstring "L" *> parseInt)
+  <|> TargetSeparator                  <$  lstring "^"
 
 -- | Parse a detector declaration: detector(0, 0) D0
 parseDEMDetector :: Parser DEMDetector

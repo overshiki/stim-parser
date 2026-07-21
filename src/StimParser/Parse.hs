@@ -103,7 +103,7 @@ parseGate :: Parser Gate
 parseGate = do
   gty <- parseGateTy
   tag <- optional parseTag
-  qs <- parseExhaust parseQ
+  qs <- some parseQ
   return $ Gate gty tag qs
 
 parseMeasureTy :: Parser MeasureTy
@@ -124,13 +124,13 @@ parseMeasure = do
       mty <- parseMeasureTy
       tag <- optional parseTag
       ph <- parsePh
-      qs <- parseExhaust parseQ
+      qs <- some parseQ
       return $ Measure mty tag (Just ph) qs
     -- parser for case: M[tag] 0
     pm2 = do 
       mty <- parseMeasureTy
       tag <- optional parseTag
-      qs <- parseExhaust parseQ
+      qs <- some parseQ
       return $ Measure mty tag Nothing qs
   -- the order is tricky - try phase version first
   try pm1 <|> pm2

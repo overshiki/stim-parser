@@ -1,6 +1,7 @@
 module Test.Parse where
 
 import Test.HUnit
+import Text.Megaparsec (runParser)
 import StimParser.Parse
 import StimParser.ParseUtils (run)
 import StimParser.Expr
@@ -25,6 +26,7 @@ tests = TestList
   , testParseFInd
   , testParseAnn
   , testParseStimNoiseOrder
+  , testParseZeroTargetRejection
   ]
 
 -- Helper to compare using show (since types don't derive Eq)
@@ -310,3 +312,29 @@ testParseStimNoiseOrder = TestList
       (StimList [StimG (Gate H Nothing [Q 0, Q 1, Q 2])])
       (run parseStim "!!!Start\nH 0 1 2\n")
   ]
+
+-- | Zero-target gates/measures must fail, and keywords that share prefixes with
+-- gate/measure names must not be misparsed.
+testParseZeroTargetRejection :: Test
+testParseZeroTargetRejection = TestList
+  [ "parseGate H with no target fails" ~: TestCase $ do
+      let result = runParser parseGate "" "H"
+      case result of
+        Left _ -> return ()
+        Right _ -> assertFailure "gate with zero targets should fail"
+
+  , "parseMeasure M with no target fails" ~: TestCase $ do
+      let result = runParser parseMeasure "" "M"
+      case result of
+        Left _ -> return ()
+        Right _ -> assertFailure "measure with zero targets should fail"
+
+  , assertShowEqual "SHIFT_COORDS after TICK parses"
+      (StimList [StimAnn (Ann TICK Nothing [] []), StimAnn (Ann SHIFT_COORDS Nothing [In 0, In 0, In 1] [])])
+      (run parseStim "!!!Start\nTICK\nSHIFT_COORDS(0, 0, 1)\n")
+
+  , assertShowEqual "REPEAT after DETECTOR parses"
+      (StimList [StimAnn (Ann DETECTOR Nothing [In 0, In 0, In 0] [AnnRec (Rec (-1))]), StimRepeat 10 (StimList [StimAnn (Ann TICK Nothing [] [])])])
+      (run parseStim "!!!Start\nDETECTOR(0, 0, 0) rec[-1]\nREPEAT 10 {\nTICK\n}\n")
+  ]
+

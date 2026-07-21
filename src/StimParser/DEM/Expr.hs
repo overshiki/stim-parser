@@ -11,10 +11,12 @@ newtype DetectorId = DetectorId { unDetectorId :: Int }
 newtype ObservableId = ObservableId { unObservableId :: Int }
   deriving (Show, Eq, Ord)
 
--- | Targets of an error instruction: detectors and/or observables.
+-- | Targets of an error instruction: detectors, observables, or the
+-- separator target (^) used to suggest a decomposition.
 data DEMTarget
     = TargetDetector !DetectorId
     | TargetObservable !ObservableId
+    | TargetSeparator
     deriving (Show, Eq)
 
 -- | A single error instruction: error(p) D0 D1 L0

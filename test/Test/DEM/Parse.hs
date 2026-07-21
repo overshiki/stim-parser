@@ -283,50 +283,32 @@ testParseDEMEmpty = TestList
       DEM [] ~=? run parseDEM ""
   ]
 
--- | Caret (^) rejection — '^' indicates unflattened DEM decompositions,
--- which are not part of the stable DEM format. We reject them loudly
--- instead of silently discarding them.
+-- | Caret (^) separator targets inside error(...) instructions.
 testParseDEMCaret :: Test
 testParseDEMCaret = TestList
-  [ "single caret fails" ~: TestCase $ do
-      let result = runParser parseDEM "" "error(0.01) D0 ^ D1 L0"
-      case result of
-        Left _ -> return ()
-        Right _ -> assertFailure "parser should fail on unflattened DEM with ^"
+  [ "single caret parses" ~:
+      DEM [DEMInstrError (DEMError 0.02 [TargetDetector (DetectorId 2), TargetObservable (ObservableId 0), TargetSeparator, TargetDetector (DetectorId 5), TargetDetector (DetectorId 6)])]
+      ~=? run parseDEM "error(0.02) D2 L0 ^ D5 D6\n"
 
-  , "multiple carets fails" ~: TestCase $ do
-      let result = runParser parseDEM "" "error(0.01) D0 ^ D1 ^ D2 L0"
-      case result of
-        Left _ -> return ()
-        Right _ -> assertFailure "parser should fail on unflattened DEM with ^"
+  , "multiple carets parse" ~:
+      DEM [DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetSeparator, TargetDetector (DetectorId 1), TargetSeparator, TargetObservable (ObservableId 0)])]
+      ~=? run parseDEM "error(0.01) D0 ^ D1 ^ L0\n"
 
-  , "caret between detectors fails" ~: TestCase $ do
-      let result = runParser parseDEM "" "error(0.01) D0 ^ D1 ^ D2"
-      case result of
-        Left _ -> return ()
-        Right _ -> assertFailure "parser should fail on unflattened DEM with ^"
+  , "caret between detectors parses" ~:
+      DEM [DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetSeparator, TargetDetector (DetectorId 1), TargetSeparator, TargetDetector (DetectorId 2)])]
+      ~=? run parseDEM "error(0.01) D0 ^ D1 ^ D2\n"
 
-  , "caret with observables fails" ~: TestCase $ do
-      let result = runParser parseDEM "" "error(0.01) D0 ^ L0 ^ D1"
-      case result of
-        Left _ -> return ()
-        Right _ -> assertFailure "parser should fail on unflattened DEM with ^"
+  , "caret at start parses" ~:
+      DEM [DEMInstrError (DEMError 0.01 [TargetSeparator, TargetDetector (DetectorId 0), TargetDetector (DetectorId 1)])]
+      ~=? run parseDEM "error(0.01) ^ D0 D1\n"
 
-  , "caret at start fails" ~: TestCase $ do
-      let result = runParser parseDEM "" "error(0.01) ^ D0 D1"
-      case result of
-        Left _ -> return ()
-        Right _ -> assertFailure "parser should fail on unflattened DEM with ^"
-
-  , "caret at end fails" ~: TestCase $ do
-      let result = runParser parseDEM "" "error(0.01) D0 D1 ^"
-      case result of
-        Left _ -> return ()
-        Right _ -> assertFailure "parser should fail on unflattened DEM with ^"
+  , "caret at end parses" ~:
+      DEM [DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetDetector (DetectorId 1), TargetSeparator])]
+      ~=? run parseDEM "error(0.01) D0 D1 ^\n"
 
   , "no-caret error still parses" ~:
       DEM [DEMInstrError (DEMError 0.01 [TargetDetector (DetectorId 0), TargetDetector (DetectorId 1), TargetObservable (ObservableId 0)])]
-      ~=? run parseDEM "error(0.01) D0 D1 L0"
+      ~=? run parseDEM "error(0.01) D0 D1 L0\n"
   ]
 
 -- | EOF enforcement — parseDEM must consume all input
